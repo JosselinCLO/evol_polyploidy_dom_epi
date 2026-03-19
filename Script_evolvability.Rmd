@@ -1,0 +1,3411 @@
+---
+title: "Evolvability polyploids"
+author: "Josselin Clo"
+date: "22/02/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Additive case
+
+```{r, echo = F}
+
+dom=10
+het=8
+rec=6
+
+rho = 1
+
+AAAA=(1+rho)*dom
+AAAa=(1+rho)*((het+dom)/2)
+AAaa=(1+rho)*het 
+Aaaa=(1+rho)*((het+rec)/2)
+aaaa=(1+rho)*rec
+
+a= dom - ((dom+rec)/2)
+d= het - ((dom+rec)/2)
+
+gAAAA=(1+rho)*a
+gAAAa=(1+rho)*((a+d)/2)
+gAAaa=(1+rho)*d
+gAaaa=(1+rho)*((d-a)/2)
+gaaaa=(1+rho)*(-a)
+
+p = seq(0, 1, by=0.01)
+q = 1-p
+
+e_diplo = c(NULL)
+e_tetra_eq = c(NULL)
+
+var_diplo = c(NULL)
+var_tetra_eq = c(NULL)
+
+mean_diplo = c(NULL)
+mean_tetra = c(NULL)
+
+for(i in 1:length(p)){
+
+z_diplo = dom*(p[i]^2) + het*(2*p[i]*q[i]) + rec*(q[i]^2) 
+z_tetra = AAAA*(p[i]^4) + AAAa*(4*(p[i]^3)*q[i]) + Aaaa*(4*(q[i]^3)*p[i]) + AAaa*(6*(p[i]^2)*(q[i]^2)) + aaaa*(q[i]^4)
+
+gz_tetra = gAAAA*(p[i]^4) + gAAAa*(4*(p[i]^3)*q[i]) + gAaaa*(4*(q[i]^3)*p[i]) + gAAaa*(6*(p[i]^2)*(q[i]^2)) + gaaaa*(q[i]^4)
+
+alpha_A = (gAAAA*(p[i]^3)) + (gAAAa*3*(p[i]^2)*(q[i])) + (gAAaa*3*(p[i])*(q[i]^2)) + (gAaaa*(q[i]^3)) - gz_tetra 
+alpha_a = (gAAAa*(p[i]^3)) + (gAAaa*3*(p[i]^2)*(q[i])) + (gAaaa*3*(p[i])*(q[i]^2)) + (gaaaa*(q[i]^3)) - gz_tetra
+
+var_add_tetra = ((4*alpha_A)^2)*(p[i]^4) + (((3*alpha_A)+(1*alpha_a))^2)*(4*(p[i]^3)*q[i]) + (((1*alpha_A)+(3*alpha_a))^2)*(4*(q[i]^3)*p[i]) + (((2*alpha_A)+(2*alpha_a))^2)*(6*(p[i]^2)*(q[i]^2)) + ((4*alpha_a)^2)*(q[i]^4)
+
+e_diplo[i] = (2*p[i]*q[i]*((a + d*(q[i]-p[i]))^2))/(z_diplo^2)
+e_tetra_eq[i] = (var_add_tetra)/(z_tetra^2)
+
+var_diplo[i] = (2*p[i]*q[i]*((a + d*(q[i]-p[i]))^2))
+var_tetra_eq[i] = (var_add_tetra)
+
+mean_diplo[i] = z_diplo
+mean_tetra[i] = z_tetra
+
+}
+
+plot(e_diplo~p, col="white")
+lines(e_diplo~p, lty = 2)
+lines(e_tetra_eq~p, lty = 3)
+
+plot(var_diplo~p)
+
+plot((mean_tetra/mean_diplo)~p)
+
+plot((var_tetra_eq/(mean_tetra^2))/(var_diplo/(mean_diplo^2))~p)
+
+###################################
+
+# Test for a quantitative traits
+
+# mean = 10, L = 50, N=1000
+
+pi = c(seq(0.05, 0.95, by=0.05))
+
+##### Sampling = 5 #####
+
+freq5 = c(NULL)
+evo.ratio5 = c(NULL)
+var.freq5 = c(NULL)
+maximum5 = c(NULL)
+minimum5 = c(NULL)
+
+for(k in 1:length(pi)){
+
+ratio = c(NULL) 
+  
+for(l in 1:1000){  
+  
+for(i in 1:50){
+
+allele1 = rnorm(1, 10/100, 0.05^0.5)  
+allele2 = rnorm(1, 10/100, 0.05^0.5)
+
+loci = c(NULL)
+
+for(j in 1:2000){
+  
+  if(runif(1, 0, 1) < pi[k]){loci[j] = allele1}
+  else{loci[j] = allele2}
+  
+}
+  
+if(i == 1){genome = loci}
+else{genome = cbind(genome, loci)}
+
+}
+
+pheno=c(NULL)
+
+for(i in 1:1000){
+  pheno[i] = sum(genome[2*i,])+sum(genome[(2*i)-1,])
+}
+
+evo_2x = (sum((pheno-mean(pheno))^2)/1000)/(mean(pheno)^2)
+
+## On fait des 4x
+
+parents_gen1 = c(NULL)
+potential = c(1:1000)
+
+for(i in 1:5){
+
+parents_temp = sample(potential,2, replace = F)   
+
+parents_gen1 = c(parents_gen1, parents_temp)
+
+}
+
+## On construit le génome
+
+for(i in 1:length(parents_gen1)){
+
+haplo1=genome[2*parents_gen1[i],]
+haplo2=genome[(2*parents_gen1[i])-1,]
+
+if(i == 1){genome_4x = rbind(haplo1, haplo2)}
+else{genome_4x = rbind(genome_4x,haplo1, haplo2)}
+
+}
+
+pheno_4x = c(NULL)
+
+for(i in 1:5){
+  
+  pheno_4x[i] = sum(genome_4x[4*i,]) + sum(genome_4x[(4*i)-1,]) + sum(genome_4x[(4*i)-2,]) + sum(genome_4x[(4*i)-3,])
+  
+}
+
+evo_4x = (sum((pheno_4x-mean(pheno_4x))^2)/5)/(mean(pheno_4x)^2)
+
+ratio[l] = evo_4x/evo_2x
+
+}
+
+if(k == 1){freq5 = ratio}
+else{freq5 = c(freq5, ratio)}
+
+evo.ratio5[k] = mean(ratio)
+var.freq5[k] = var(ratio)
+maximum5[k]=max(ratio)
+minimum5[k]=min(ratio)
+
+}
+
+##### Sampling = 50 #####
+
+freq50 = c(NULL)
+evo.ratio50 = c(NULL)
+var.freq50 = c(NULL)
+maximum50 = c(NULL)
+minimum50 = c(NULL)
+
+for(k in 1:length(pi)){
+
+ratio = c(NULL) 
+  
+for(l in 1:1000){  
+  
+for(i in 1:50){
+
+allele1 = rnorm(1, 10/100, 0.05^0.5)  
+allele2 = rnorm(1, 10/100, 0.05^0.5)
+
+loci = c(NULL)
+
+for(j in 1:2000){
+  
+  if(runif(1, 0, 1) < pi[k]){loci[j] = allele1}
+  else{loci[j] = allele2}
+  
+}
+  
+if(i == 1){genome = loci}
+else{genome = cbind(genome, loci)}
+
+}
+
+pheno=c(NULL)
+
+for(i in 1:1000){
+  pheno[i] = sum(genome[2*i,])+sum(genome[(2*i)-1,])
+}
+
+evo_2x = (sum((pheno-mean(pheno))^2)/1000)/(mean(pheno)^2)
+
+## On fait des 4x
+
+parents_gen1 = c(NULL)
+potential = c(1:1000)
+
+for(i in 1:50){
+
+parents_temp = sample(potential,2, replace = F)   
+
+parents_gen1 = c(parents_gen1, parents_temp)
+
+}
+
+## On construit le génome
+
+for(i in 1:length(parents_gen1)){
+
+haplo1=genome[2*parents_gen1[i],]
+haplo2=genome[(2*parents_gen1[i])-1,]
+
+if(i == 1){genome_4x = rbind(haplo1, haplo2)}
+else{genome_4x = rbind(genome_4x,haplo1, haplo2)}
+
+}
+
+pheno_4x = c(NULL)
+
+for(i in 1:50){
+  
+  pheno_4x[i] = sum(genome_4x[4*i,]) + sum(genome_4x[(4*i)-1,]) + sum(genome_4x[(4*i)-2,]) + sum(genome_4x[(4*i)-3,])
+  
+}
+
+evo_4x = (sum((pheno_4x-mean(pheno_4x))^2)/50)/(mean(pheno_4x)^2)
+
+ratio[l] = evo_4x/evo_2x
+
+}
+
+if(k == 1){freq50 = ratio}
+else{freq50 = c(freq50, ratio)}
+
+evo.ratio50[k] = mean(ratio)
+var.freq50[k] = var(ratio)
+maximum50[k]=max(ratio)
+minimum50[k]=min(ratio)
+
+}
+
+##### Sampling = 100 #####
+
+freq100 = c(NULL)
+evo.ratio100 = c(NULL)
+var.freq100 = c(NULL)
+maximum100 = c(NULL)
+minimum100 = c(NULL)
+
+for(k in 1:length(pi)){
+
+ratio = c(NULL) 
+  
+for(l in 1:1000){  
+  
+for(i in 1:50){
+
+allele1 = rnorm(1, 10/100, 0.05^0.5)  
+allele2 = rnorm(1, 10/100, 0.05^0.5)
+
+loci = c(NULL)
+
+for(j in 1:2000){
+  
+  if(runif(1, 0, 1) < pi[k]){loci[j] = allele1}
+  else{loci[j] = allele2}
+  
+}
+  
+if(i == 1){genome = loci}
+else{genome = cbind(genome, loci)}
+
+}
+
+pheno=c(NULL)
+
+for(i in 1:1000){
+  pheno[i] = sum(genome[2*i,])+sum(genome[(2*i)-1,])
+}
+
+evo_2x = (sum((pheno-mean(pheno))^2)/1000)/(mean(pheno)^2)
+
+## On fait des 4x
+
+parents_gen1 = c(NULL)
+potential = c(1:1000)
+
+for(i in 1:100){
+
+parents_temp = sample(potential,2, replace = F)   
+
+parents_gen1 = c(parents_gen1, parents_temp)
+
+}
+
+## On construit le génome
+
+for(i in 1:length(parents_gen1)){
+
+haplo1=genome[2*parents_gen1[i],]
+haplo2=genome[(2*parents_gen1[i])-1,]
+
+if(i == 1){genome_4x = rbind(haplo1, haplo2)}
+else{genome_4x = rbind(genome_4x,haplo1, haplo2)}
+
+}
+
+pheno_4x = c(NULL)
+
+for(i in 1:100){
+  
+  pheno_4x[i] = sum(genome_4x[4*i,]) + sum(genome_4x[(4*i)-1,]) + sum(genome_4x[(4*i)-2,]) + sum(genome_4x[(4*i)-3,])
+  
+}
+
+evo_4x = (sum((pheno_4x-mean(pheno_4x))^2)/100)/(mean(pheno_4x)^2)
+
+ratio[l] = evo_4x/evo_2x
+
+}
+
+if(k == 1){freq100 = ratio}
+else{freq100 = c(freq100, ratio)}
+
+evo.ratio100[k] = mean(ratio)
+var.freq100[k] = var(ratio)
+maximum100[k]=max(ratio)
+minimum100[k]=min(ratio)
+
+}
+
+freq.graphe = as.factor(c(rep(0.05, times = 1000),rep(0.1, times = 1000),rep(0.15, times = 1000),rep(0.2, times = 1000),rep(0.25, times = 1000),rep(0.3, times = 1000),rep(0.35, times = 1000),rep(0.4, times = 1000),rep(0.45, times = 1000),rep(0.5, times = 1000),rep(0.55, times = 1000),rep(0.6, times = 1000),rep(0.65, times = 1000),rep(0.7, times = 1000),rep(0.75, times = 1000),rep(0.8, times = 1000),rep(0.85, times = 1000),rep(0.9, times = 1000),rep(0.95, times = 1000)))
+
+test5_moins = c(NULL)
+test5_plus = c(NULL)
+
+for(i in 1:length(pi)){
+  
+  plus = 0
+  moins = 0
+  
+  for(j in ((i*1000)-999):(i*1000)){
+    
+    if(freq5[j] < 0.5){plus = plus
+    moins = moins + 1}
+    else if(freq5[j] > 1){plus = plus + 1
+    moins = moins}
+    else{plus = plus
+    moins = moins}
+    
+  }
+  
+  test5_plus[i] = plus/1000 
+  test5_moins[i] = moins/1000
+}
+
+test5_plus
+test5_moins
+
+test50_moins = c(NULL)
+test50_plus = c(NULL)
+
+for(i in 1:length(pi)){
+  
+  plus = 0
+  moins = 0
+  
+  for(j in ((i*1000)-999):(i*1000)){
+    
+    if(freq50[j] < 0.5){plus = plus
+    moins = moins + 1}
+    else if(freq50[j] > 1){plus = plus + 1
+    moins = moins}
+    else{plus = plus
+    moins = moins}
+    
+  }
+  
+  test50_plus[i] = plus/1000 
+  test50_moins[i] = moins/1000
+}
+
+test50_plus
+test50_moins
+
+test100_moins = c(NULL)
+test100_plus = c(NULL)
+
+for(i in 1:length(pi)){
+  
+  plus = 0
+  moins = 0
+  
+  for(j in ((i*1000)-999):(i*1000)){
+    
+    if(freq100[j] < 0.5){plus = plus
+    moins = moins + 1}
+    else if(freq100[j] > 1){plus = plus + 1
+    moins = moins}
+    else{plus = plus
+    moins = moins}
+    
+  }
+  
+  test100_plus[i] = plus/1000 
+  test100_moins[i] = moins/1000
+}
+
+test100_plus
+test100_moins
+
+boxplot(freq5~freq.graphe)
+abline(h=0.5)
+
+ic5 = 1.96*((var.freq5^0.5)/(1000^0.5))
+ic50 = 1.96*((var.freq50^0.5)/(1000^0.5))
+ic100 = 1.96*((var.freq100^0.5)/(1000^0.5))
+
+plot(test5_plus~pi, ylim = c(0,0.07), pch=15, col="blue")
+points(maximum50~pi, ylim = c(0,3), pch=15, col="red")
+points(maximum100~pi, ylim = c(0,3), pch=15, col="green")
+
+arrows(pi,freq+ic, pi,freq-ic,lwd=1.5, angle=0,length=0.1,code=3, lty=1,col="cornflowerblue")
+abline(h = 0.5, lty=2)
+
+```
+
+# With dominance
+
+## Total dominance
+
+```{r, echo = F}
+
+lala1=rnorm(1,10,0.05)
+lala2=rnorm(1,10,0.05)
+
+dom=max(lala1,lala2)
+rec=min(lala1,lala2)
+het=max(dom, rec)
+
+
+rho = 1
+dom1= 0
+dom2= 0
+dom3= 0
+  
+AAAA=max(dom, rec)
+AAAa=max(dom, rec)
+AAaa=max(dom, rec)
+Aaaa=max(dom, rec)
+aaaa=min(dom, rec)
+
+a= max(dom,rec) - ((dom+rec)/2)
+d= het - ((dom+rec)/2)
+
+p = seq(0, 1, by=0.01)
+q = 1-p
+
+e_diplo = c(NULL)
+e_tetra_eq = c(NULL)
+e_tetra_court = c(NULL)
+
+var_diplo = c(NULL)
+var_tetra_eq = c(NULL)
+
+mean_diplo = c(NULL)
+mean_tetra = c(NULL)
+
+for(i in 1:length(p)){
+
+z_diplo = dom*(p[i]^2) + het*(2*p[i]*q[i]) + rec*(q[i]^2) 
+z_tetra = AAAA*(p[i]^4) + AAAa*(4*(p[i]^3)*q[i]) + Aaaa*(4*(q[i]^3)*p[i]) + AAaa*(6*(p[i]^2)*(q[i]^2)) + aaaa*(q[i]^4)
+
+AAAAi = AAAA - z_tetra
+AAAai = AAAa - z_tetra
+AAaai = AAaa - z_tetra
+Aaaai = Aaaa - z_tetra
+aaaai = aaaa - z_tetra
+
+alpha_A = (AAAAi*(p[i]^3)) + (AAAai*3*(p[i]^2)*(q[i])) + (AAaai*3*(p[i])*(q[i]^2)) + (Aaaai*(q[i]^3))  
+alpha_a = (AAAai*(p[i]^3)) + (AAaai*3*(p[i]^2)*(q[i])) + (Aaaai*3*(p[i])*(q[i]^2)) + (aaaai*(q[i]^3)) 
+
+Beta_AA= (AAAAi*(p[i]^2)) + (AAAai*2*(p[i])*(q[i])) + (AAaai*(q[i]^2)) - 2*alpha_A
+Beta_Aa= (AAAai*(p[i]^2)) + (AAaai*2*(p[i])*(q[i])) + (Aaaai*(q[i]^2)) - alpha_A - alpha_a
+Beta_aa= (aaaai*(q[i]^2)) + (Aaaai*2*(p[i])*(q[i])) + (AAaai*(p[i]^2)) - 2*alpha_a
+
+var_add_tetra = (4*p[i]*(alpha_A^2))+(4*q[i]*(alpha_a^2))
+
+var_dom_tetra = (6*(p[i]^2)*(Beta_AA^2))+(6*2*p[i]*q[i]*(Beta_Aa^2))+(6*(q[i]^2)*(Beta_aa^2))
+
+e_diplo[i] = (2*p[i]*q[i]*((a + d*(q[i]-p[i]))^2))/(z_diplo^2)
+e_tetra_court[i] = (var_add_tetra + ((var_dom_tetra)/3))/(z_tetra^2)
+e_tetra_eq[i] = (var_add_tetra)/(z_tetra^2)
+
+var_diplo[i] = (2*p[i]*q[i]*((a + d*(q[i]-p[i]))^2))
+var_tetra_eq[i] = (var_add_tetra)
+
+mean_diplo[i] = z_diplo
+mean_tetra[i] = z_tetra
+
+}
+
+plot((e_tetra_court/e_diplo)~p, col="white")
+#lines(e_diplo~p, lty = 2)
+lines((e_tetra_court/e_diplo)~p, lty = 3,col = "red")
+lines((e_tetra_eq/e_diplo)~p, lty = 3,col = "green")
+abline(1,0, lty=2, col="black")
+
+plot(var_tetra_eq~p)
+lines(var_diplo~p,lty=2)
+lines(mean_diplo~p,lty=3)
+abline(1,0, lty=2, col="red")
+
+###################################
+
+# Test for a quantitative traits
+
+# mean = 10, L = 50, N=1000
+
+pi = c(seq(0.05, 0.95, by=0.05))
+
+########################
+##### Dom complète #####
+########################
+
+##### Sampling = 5 #####
+
+freq5 = c(NULL)
+evo.ad.ratio5 = c(NULL)
+evo.do.ratio5 = c(NULL)
+var.freq.ad.5 = c(NULL)
+var.freq.do.5 = c(NULL)
+maximum5 = c(NULL)
+minimum5 = c(NULL)
+
+k=1
+
+for(k in 1:length(pi)){
+
+ratio_add = c(NULL) 
+ratio_dom = c(NULL) 
+  
+for(l in 1:50){  
+
+sample1 = c(rnorm(50, 10/100, 0.005^0.5))  
+sample2 = c(rnorm(50, 10/100, 0.005^0.5))
+
+allele1=c(NULL)
+allele2=c(NULL)
+
+for(i in 1:50){
+  allele1[i]=max(sample1[i], sample2[i])
+  allele2[i]=min(sample1[i], sample2[i])
+}
+  
+for(i in 1:50){
+
+loci = c(NULL)
+
+for(j in 1:2000){
+  
+  if(runif(1, 0, 1) < pi[k]){loci[j] = allele1[i]}
+  else{loci[j] = allele2[i]}
+  
+}
+  
+if(i == 1){genome = loci}
+else{genome = cbind(genome, loci)}
+
+}
+
+pheno=c(NULL)
+i = 1
+z=1
+for(i in 1:1000){
+  
+  pheno_temp = 0
+  
+  for(z in 1:50){
+    
+    if(genome[2*i,z] == genome[(2*i)-1,z]){pheno_temp = pheno_temp + 2*genome[2*i,z]}
+    else{pheno_temp = pheno_temp + 2*max(genome[2*i,z], genome[(2*i)-1,z])}
+  
+  }
+  
+  pheno[i] = pheno_temp
+  
+}
+
+var.add.sim = 0
+
+for(z in 1:50){
+  
+  homo1 = 2*allele1[z]
+  homo2 = 2*allele2[z]
+  het = max(2*allele1[z],2*allele2[z])
+  
+  nb.all1 = 0
+      
+      for(x in 1:2000){
+        if(genome[x,z] == allele1[z]){nb.all1 = nb.all1 + 1}
+      }
+      
+  freq.all1 = nb.all1/2000
+  freq.all2 = 1-freq.all1
+  
+  mean.loc = (freq.all1^2)*homo1 + (freq.all2^2)*homo2 + 2*freq.all1*freq.all2*het
+  
+  homo1 = homo1 - mean.loc
+  homo2 = homo2 - mean.loc
+  het = het - mean.loc
+  
+  alpha_1 = freq.all1*homo1 + freq.all2*het 
+  alpha_2 = freq.all1*het + freq.all2*homo2
+  
+  var.add.sim = var.add.sim + 2*freq.all1*(alpha_1^2) + 2*freq.all2*(alpha_2^2)  
+  
+}
+
+evo_2x = var.add.sim/(mean(pheno)^2)
+
+## On fait des 4x
+
+parents_gen1 = c(NULL)
+potential = c(1:1000)
+
+for(i in 1:5){
+
+parents_temp = sample(potential,2, replace = F)   
+
+parents_gen1 = c(parents_gen1, parents_temp)
+
+}
+
+## On construit le génome
+
+for(i in 1:length(parents_gen1)){
+
+haplo1=genome[2*parents_gen1[i],]
+haplo2=genome[(2*parents_gen1[i])-1,]
+
+if(i == 1){genome_4x = rbind(haplo1, haplo2)}
+else{genome_4x = rbind(genome_4x,haplo1, haplo2)}
+
+}
+
+pheno_4x = c(NULL)
+
+for(i in 1:5){
+  
+  pheno_temp = 0
+  
+  for(z in 1:50){
+    
+    if(genome_4x[4*i,z] == genome_4x[(4*i)-1,z] && genome_4x[4*i,z] == genome_4x[(4*i)-2,z] && genome_4x[4*i,z] == genome_4x[(4*i)-3,z]){pheno_temp = pheno_temp + 4*genome_4x[4*i,z]}
+    else{pheno_temp = pheno_temp + 4*max(genome_4x[4*i,z],genome_4x[(4*i)-1,z],genome_4x[(4*i)-2,z],genome_4x[(4*i)-3,z])}
+    
+  }
+  
+  pheno_4x[i] = pheno_temp
+}
+
+var.add.sim = 0
+var.dom.sim = 0
+
+for(z in 1:50){
+  
+  AAAA = 4*allele1[z]
+  aaaa = 4*allele2[z]
+  AAAa = max(4*allele1[z],4*allele2[z])
+  AAaa = max(4*allele1[z],4*allele2[z])
+  Aaaa = max(4*allele1[z],4*allele2[z])
+  
+  nb.all1 = 0
+      
+      for(x in 1:20){
+        if(genome_4x[x,z] == allele1[z]){nb.all1 = nb.all1 + 1}
+      }
+      
+  freq.all1 = nb.all1/20
+  freq.all2 = 1-freq.all1
+  
+  mean.loc = (freq.all1^4)*AAAA + (freq.all2^4)*aaaa + 4*(freq.all1^3)*freq.all2*AAAa + 4*(freq.all2^3)*freq.all1*Aaaa + 6*(freq.all1^2)*(freq.all2^2)*AAaa
+  
+  AAAA = AAAA - mean.loc
+  aaaa = aaaa - mean.loc
+  AAAa = AAAa - mean.loc
+  AAaa = AAaa - mean.loc
+  Aaaa = Aaaa - mean.loc
+  
+  alpha_1 = (freq.all1^3)*AAAA + 3*(freq.all1^2)*freq.all2*AAAa + 3*(freq.all2^2)*freq.all1*AAaa + (freq.all2^3)*Aaaa 
+  alpha_2 = (freq.all1^3)*Aaaa + 3*(freq.all1^2)*freq.all2*AAaa + 3*(freq.all2^2)*freq.all1*Aaaa + (freq.all2^3)*aaaa 
+  
+  Beta_11 = (freq.all1^2)*AAAA + (freq.all2^2)*AAaa + 2*freq.all1*freq.all2*AAAa - 2*alpha_1
+  Beta_12 = (freq.all1^2)*AAAa + (freq.all2^2)*Aaaa + 2*freq.all1*freq.all2*AAaa - alpha_1 - alpha_2
+  Beta_22 = (freq.all1^2)*AAaa + (freq.all2^2)*aaaa + 2*freq.all1*freq.all2*Aaaa - 2*alpha_2
+    
+  var.add.sim = var.add.sim + 4*freq.all1*(alpha_1^2) + 4*freq.all2*(alpha_2^2)  
+  var.dom.sim = var.dom.sim + 6*(freq.all1^2)*(Beta_11^2) + 6*(freq.all2^2)*(Beta_22^2) + 12*freq.all1*freq.all2*(Beta_12^2)
+  
+}
+
+evo_4x_add = var.add.sim/(mean(pheno_4x)^2)
+evo_4x_dom = (var.add.sim+(var.dom.sim/3))/(mean(pheno_4x)^2)
+
+ratio_add[l] = evo_4x_add/evo_2x
+ratio_dom[l] = evo_4x_dom/evo_2x
+
+}
+
+if(k == 1){freq5 = ratio_dom}
+else{freq5 = c(freq5, ratio_dom)}
+
+evo.ad.ratio5[k] = mean(ratio_add)
+var.freq.ad.5[k] = var(ratio_add)
+evo.do.ratio5[k] = mean(ratio_dom)
+var.freq.do.5[k] = var(ratio_dom)
+maximum5[k]=max(ratio_dom)
+minimum5[k]=min(ratio_dom)
+
+}
+
+##### Sampling = 50 #####
+
+freq50 = c(NULL)
+evo.ad.ratio50 = c(NULL)
+evo.do.ratio50 = c(NULL)
+var.freq.ad.50 = c(NULL)
+var.freq.do.50 = c(NULL)
+maximum50 = c(NULL)
+minimum50 = c(NULL)
+
+k=1
+
+for(k in 1:length(pi)){
+
+ratio_add = c(NULL) 
+ratio_dom = c(NULL) 
+  
+for(l in 1:50){  
+
+sample1 = c(rnorm(50, 10/100, 0.005^0.5))  
+sample2 = c(rnorm(50, 10/100, 0.005^0.5))
+
+allele1=c(NULL)
+allele2=c(NULL)
+
+for(i in 1:50){
+  allele1[i]=max(sample1[i], sample2[i])
+  allele2[i]=min(sample1[i], sample2[i])
+}
+  
+for(i in 1:50){
+
+loci = c(NULL)
+
+for(j in 1:2000){
+  
+  if(runif(1, 0, 1) < pi[k]){loci[j] = allele1[i]}
+  else{loci[j] = allele2[i]}
+  
+}
+  
+if(i == 1){genome = loci}
+else{genome = cbind(genome, loci)}
+
+}
+
+pheno=c(NULL)
+i = 1
+z=1
+for(i in 1:1000){
+  
+  pheno_temp = 0
+  
+  for(z in 1:50){
+    
+    if(genome[2*i,z] == genome[(2*i)-1,z]){pheno_temp = pheno_temp + 2*genome[2*i,z]}
+    else{pheno_temp = pheno_temp + 2*max(genome[2*i,z], genome[(2*i)-1,z])}
+  
+  }
+  
+  pheno[i] = pheno_temp
+  
+}
+
+var.add.sim = 0
+
+for(z in 1:50){
+  
+  homo1 = 2*allele1[z]
+  homo2 = 2*allele2[z]
+  het = max(2*allele1[z],2*allele2[z])
+  
+  nb.all1 = 0
+      
+      for(x in 1:2000){
+        if(genome[x,z] == allele1[z]){nb.all1 = nb.all1 + 1}
+      }
+      
+  freq.all1 = nb.all1/2000
+  freq.all2 = 1-freq.all1
+  
+  mean.loc = (freq.all1^2)*homo1 + (freq.all2^2)*homo2 + 2*freq.all1*freq.all2*het
+  
+  homo1 = homo1 - mean.loc
+  homo2 = homo2 - mean.loc
+  het = het - mean.loc
+  
+  alpha_1 = freq.all1*homo1 + freq.all2*het 
+  alpha_2 = freq.all1*het + freq.all2*homo2
+  
+  var.add.sim = var.add.sim + 2*freq.all1*(alpha_1^2) + 2*freq.all2*(alpha_2^2)  
+  
+}
+
+evo_2x = var.add.sim/(mean(pheno)^2)
+
+## On fait des 4x
+
+parents_gen1 = c(NULL)
+potential = c(1:1000)
+
+for(i in 1:50){
+
+parents_temp = sample(potential,2, replace = F)   
+
+parents_gen1 = c(parents_gen1, parents_temp)
+
+}
+
+## On construit le génome
+
+for(i in 1:length(parents_gen1)){
+
+haplo1=genome[2*parents_gen1[i],]
+haplo2=genome[(2*parents_gen1[i])-1,]
+
+if(i == 1){genome_4x = rbind(haplo1, haplo2)}
+else{genome_4x = rbind(genome_4x,haplo1, haplo2)}
+
+}
+
+pheno_4x = c(NULL)
+
+for(i in 1:50){
+  
+  pheno_temp = 0
+  
+  for(z in 1:50){
+    
+    if(genome_4x[4*i,z] == genome_4x[(4*i)-1,z] && genome_4x[4*i,z] == genome_4x[(4*i)-2,z] && genome_4x[4*i,z] == genome_4x[(4*i)-3,z]){pheno_temp = pheno_temp + 4*genome_4x[4*i,z]}
+    else{pheno_temp = pheno_temp + 4*max(genome_4x[4*i,z],genome_4x[(4*i)-1,z],genome_4x[(4*i)-2,z],genome_4x[(4*i)-3,z])}
+    
+  }
+  
+  pheno_4x[i] = pheno_temp
+}
+
+var.add.sim = 0
+var.dom.sim = 0
+
+for(z in 1:50){
+  
+  AAAA = 4*allele1[z]
+  aaaa = 4*allele2[z]
+  AAAa = max(4*allele1[z],4*allele2[z])
+  AAaa = max(4*allele1[z],4*allele2[z])
+  Aaaa = max(4*allele1[z],4*allele2[z])
+  
+  nb.all1 = 0
+      
+      for(x in 1:200){
+        if(genome_4x[x,z] == allele1[z]){nb.all1 = nb.all1 + 1}
+      }
+      
+  freq.all1 = nb.all1/200
+  freq.all2 = 1-freq.all1
+  
+  mean.loc = (freq.all1^4)*AAAA + (freq.all2^4)*aaaa + 4*(freq.all1^3)*freq.all2*AAAa + 4*(freq.all2^3)*freq.all1*Aaaa + 6*(freq.all1^2)*(freq.all2^2)*AAaa
+  
+  AAAA = AAAA - mean.loc
+  aaaa = aaaa - mean.loc
+  AAAa = AAAa - mean.loc
+  AAaa = AAaa - mean.loc
+  Aaaa = Aaaa - mean.loc
+  
+  alpha_1 = (freq.all1^3)*AAAA + 3*(freq.all1^2)*freq.all2*AAAa + 3*(freq.all2^2)*freq.all1*AAaa + (freq.all2^3)*Aaaa 
+  alpha_2 = (freq.all1^3)*Aaaa + 3*(freq.all1^2)*freq.all2*AAaa + 3*(freq.all2^2)*freq.all1*Aaaa + (freq.all2^3)*aaaa 
+  
+  Beta_11 = (freq.all1^2)*AAAA + (freq.all2^2)*AAaa + 2*freq.all1*freq.all2*AAAa - 2*alpha_1
+  Beta_12 = (freq.all1^2)*AAAa + (freq.all2^2)*Aaaa + 2*freq.all1*freq.all2*AAaa - alpha_1 - alpha_2
+  Beta_22 = (freq.all1^2)*AAaa + (freq.all2^2)*aaaa + 2*freq.all1*freq.all2*Aaaa - 2*alpha_2
+    
+  var.add.sim = var.add.sim + 4*freq.all1*(alpha_1^2) + 4*freq.all2*(alpha_2^2)  
+  var.dom.sim = var.dom.sim + 6*(freq.all1^2)*(Beta_11^2) + 6*(freq.all2^2)*(Beta_22^2) + 12*freq.all1*freq.all2*(Beta_12^2)
+  
+}
+
+evo_4x_add = var.add.sim/(mean(pheno_4x)^2)
+evo_4x_dom = (var.add.sim+(var.dom.sim/3))/(mean(pheno_4x)^2)
+
+ratio_add[l] = evo_4x_add/evo_2x
+ratio_dom[l] = evo_4x_dom/evo_2x
+
+}
+
+if(k == 1){freq50 = ratio_dom}
+else{freq50 = c(freq50, ratio_dom)}
+
+evo.ad.ratio50[k] = mean(ratio_add)
+var.freq.ad.50[k] = var(ratio_add)
+evo.do.ratio50[k] = mean(ratio_dom)
+var.freq.do.50[k] = var(ratio_dom)
+maximum50[k]=max(ratio_dom)
+minimum50[k]=min(ratio_dom)
+
+}
+
+##### Sampling = 100 #####
+
+freq100 = c(NULL)
+evo.ad.ratio100 = c(NULL)
+evo.do.ratio100 = c(NULL)
+var.freq.ad.100 = c(NULL)
+var.freq.do.100 = c(NULL)
+maximum100 = c(NULL)
+minimum100 = c(NULL)
+
+k=1
+
+for(k in 1:length(pi)){
+
+ratio_add = c(NULL) 
+ratio_dom = c(NULL) 
+  
+for(l in 1:50){  
+
+sample1 = c(rnorm(50, 10/100, 0.005^0.5))  
+sample2 = c(rnorm(50, 10/100, 0.005^0.5))
+
+allele1=c(NULL)
+allele2=c(NULL)
+
+for(i in 1:50){
+  allele1[i]=max(sample1[i], sample2[i])
+  allele2[i]=min(sample1[i], sample2[i])
+}
+  
+for(i in 1:50){
+
+loci = c(NULL)
+
+for(j in 1:2000){
+  
+  if(runif(1, 0, 1) < pi[k]){loci[j] = allele1[i]}
+  else{loci[j] = allele2[i]}
+  
+}
+  
+if(i == 1){genome = loci}
+else{genome = cbind(genome, loci)}
+
+}
+
+pheno=c(NULL)
+i = 1
+z=1
+for(i in 1:1000){
+  
+  pheno_temp = 0
+  
+  for(z in 1:50){
+    
+    if(genome[2*i,z] == genome[(2*i)-1,z]){pheno_temp = pheno_temp + 2*genome[2*i,z]}
+    else{pheno_temp = pheno_temp + 2*max(genome[2*i,z], genome[(2*i)-1,z])}
+  
+  }
+  
+  pheno[i] = pheno_temp
+  
+}
+
+var.add.sim = 0
+
+for(z in 1:50){
+  
+  homo1 = 2*allele1[z]
+  homo2 = 2*allele2[z]
+  het = max(2*allele1[z],2*allele2[z])
+  
+  nb.all1 = 0
+      
+      for(x in 1:2000){
+        if(genome[x,z] == allele1[z]){nb.all1 = nb.all1 + 1}
+      }
+      
+  freq.all1 = nb.all1/2000
+  freq.all2 = 1-freq.all1
+  
+  mean.loc = (freq.all1^2)*homo1 + (freq.all2^2)*homo2 + 2*freq.all1*freq.all2*het
+  
+  homo1 = homo1 - mean.loc
+  homo2 = homo2 - mean.loc
+  het = het - mean.loc
+  
+  alpha_1 = freq.all1*homo1 + freq.all2*het 
+  alpha_2 = freq.all1*het + freq.all2*homo2
+  
+  var.add.sim = var.add.sim + 2*freq.all1*(alpha_1^2) + 2*freq.all2*(alpha_2^2)  
+  
+}
+
+evo_2x = var.add.sim/(mean(pheno)^2)
+
+## On fait des 4x
+
+parents_gen1 = c(NULL)
+potential = c(1:1000)
+
+for(i in 1:100){
+
+parents_temp = sample(potential,2, replace = F)   
+
+parents_gen1 = c(parents_gen1, parents_temp)
+
+}
+
+## On construit le génome
+
+for(i in 1:length(parents_gen1)){
+
+haplo1=genome[2*parents_gen1[i],]
+haplo2=genome[(2*parents_gen1[i])-1,]
+
+if(i == 1){genome_4x = rbind(haplo1, haplo2)}
+else{genome_4x = rbind(genome_4x,haplo1, haplo2)}
+
+}
+
+pheno_4x = c(NULL)
+
+for(i in 1:100){
+  
+  pheno_temp = 0
+  
+  for(z in 1:50){
+    
+    if(genome_4x[4*i,z] == genome_4x[(4*i)-1,z] && genome_4x[4*i,z] == genome_4x[(4*i)-2,z] && genome_4x[4*i,z] == genome_4x[(4*i)-3,z]){pheno_temp = pheno_temp + 4*genome_4x[4*i,z]}
+    else{pheno_temp = pheno_temp + 4*max(genome_4x[4*i,z],genome_4x[(4*i)-1,z],genome_4x[(4*i)-2,z],genome_4x[(4*i)-3,z])}
+    
+  }
+  
+  pheno_4x[i] = pheno_temp
+}
+
+var.add.sim = 0
+var.dom.sim = 0
+
+for(z in 1:50){
+  
+  AAAA = 4*allele1[z]
+  aaaa = 4*allele2[z]
+  AAAa = max(4*allele1[z],4*allele2[z])
+  AAaa = max(4*allele1[z],4*allele2[z])
+  Aaaa = max(4*allele1[z],4*allele2[z])
+  
+  nb.all1 = 0
+      
+      for(x in 1:400){
+        if(genome_4x[x,z] == allele1[z]){nb.all1 = nb.all1 + 1}
+      }
+      
+  freq.all1 = nb.all1/400
+  freq.all2 = 1-freq.all1
+  
+  mean.loc = (freq.all1^4)*AAAA + (freq.all2^4)*aaaa + 4*(freq.all1^3)*freq.all2*AAAa + 4*(freq.all2^3)*freq.all1*Aaaa + 6*(freq.all1^2)*(freq.all2^2)*AAaa
+  
+  AAAA = AAAA - mean.loc
+  aaaa = aaaa - mean.loc
+  AAAa = AAAa - mean.loc
+  AAaa = AAaa - mean.loc
+  Aaaa = Aaaa - mean.loc
+  
+  alpha_1 = (freq.all1^3)*AAAA + 3*(freq.all1^2)*freq.all2*AAAa + 3*(freq.all2^2)*freq.all1*AAaa + (freq.all2^3)*Aaaa 
+  alpha_2 = (freq.all1^3)*Aaaa + 3*(freq.all1^2)*freq.all2*AAaa + 3*(freq.all2^2)*freq.all1*Aaaa + (freq.all2^3)*aaaa 
+  
+  Beta_11 = (freq.all1^2)*AAAA + (freq.all2^2)*AAaa + 2*freq.all1*freq.all2*AAAa - 2*alpha_1
+  Beta_12 = (freq.all1^2)*AAAa + (freq.all2^2)*Aaaa + 2*freq.all1*freq.all2*AAaa - alpha_1 - alpha_2
+  Beta_22 = (freq.all1^2)*AAaa + (freq.all2^2)*aaaa + 2*freq.all1*freq.all2*Aaaa - 2*alpha_2
+    
+  var.add.sim = var.add.sim + 4*freq.all1*(alpha_1^2) + 4*freq.all2*(alpha_2^2)  
+  var.dom.sim = var.dom.sim + 6*(freq.all1^2)*(Beta_11^2) + 6*(freq.all2^2)*(Beta_22^2) + 12*freq.all1*freq.all2*(Beta_12^2)
+  
+}
+
+evo_4x_add = var.add.sim/(mean(pheno_4x)^2)
+evo_4x_dom = (var.add.sim+(var.dom.sim/3))/(mean(pheno_4x)^2)
+
+ratio_add[l] = evo_4x_add/evo_2x
+ratio_dom[l] = evo_4x_dom/evo_2x
+
+}
+
+if(k == 1){freq100 = ratio_dom}
+else{freq100 = c(freq100, ratio_dom)}
+
+evo.ad.ratio100[k] = mean(ratio_add)
+var.freq.ad.100[k] = var(ratio_add)
+evo.do.ratio100[k] = mean(ratio_dom)
+var.freq.do.100[k] = var(ratio_dom)
+maximum100[k]=max(ratio_dom)
+minimum100[k]=min(ratio_dom)
+
+}
+
+ic5 = 1.96*((var.freq.do.5^0.5)/(50^0.5))
+ic50 = 1.96*((var.freq.do.50^0.5)/(50^0.5))
+ic100 = 1.96*((var.freq.do.100^0.5)/(50^0.5))
+
+plot(e_tetra_eq/e_diplo~p, col = "white", main="A", xlab="", ylab="")
+lines(e_tetra_eq/e_diplo~p)
+abline(h =1, lty =2)
+points(evo.do.ratio5~pi, pch=16, col="cornflowerblue")
+points(evo.do.ratio50~pi, pch=16, col="tomato")
+points(evo.do.ratio100~pi, pch=16, col="lightgreen")
+arrows(pi,evo.do.ratio5+ic5, pi,evo.do.ratio5-ic5,lwd=1.5, angle=0,length=0.1,code=3, lty=1,col="cornflowerblue")
+arrows(pi,evo.do.ratio50+ic50, pi,evo.do.ratio50-ic50,lwd=1.5, angle=0,length=0.1,code=3, lty=1,col="tomato")
+arrows(pi,evo.do.ratio100+ic100, pi,evo.do.ratio100-ic100,lwd=1.5, angle=0,length=0.1,code=3, lty=1,col="lightgreen")
+
+freqi5=c(NULL)
+freqi50=c(NULL)
+freqi100=c(NULL)
+
+for(i in 1:19){
+
+count5 = 0
+count50 = 0
+count100 = 0
+
+  for(j in (((i-1)*50)+1):(i*50)){
+    if(freq5[j]>1){count5 = count5+1}
+  
+    if(freq50[j]>1){count50 = count50+1}
+  
+    if(freq100[j]>1){count100 = count100+1}
+  } 
+
+freqi5[i]=count5/50
+freqi50[i]=count50/50
+freqi100[i]=count100/50
+
+}
+
+plot(freqi5~pi, main="B", xlab="", ylab="", pch = 16, col ="cornflowerblue", ylim=c(0,1))
+points(freqi50~pi, pch = 16, col ="tomato")
+points(freqi100~pi, pch = 16, col ="lightgreen")
+
+plot(maximum5~pi, main="C", xlab="", ylab="", pch = 16, col ="cornflowerblue", ylim=c(0,2))
+points(maximum50~pi, pch = 16, col ="tomato")
+points(maximum100~pi, pch = 16, col ="lightgreen")
+
+
+#ic5 = 1.96*((var.freq.do.5^0.5)/(100^0.5))
+#ic5a = 1.96*((var.freq.ad.5^0.5)/(100^0.5))
+#
+#plot((e_tetra_court/e_diplo)~p, col="white")
+##lines(e_diplo~p, lty = 2)
+#lines((e_tetra_court/e_diplo)~p, lty = 3,col = "red")
+#lines((e_tetra_eq/e_diplo)~p, lty = 3,col = "green")
+#points(evo.do.ratio5~pi, col="black")
+#arrows(pi,evo.do.ratio5+ic5, pi,evo.do.ratio5-ic5,lwd=1.5, angle=0,length=0.1,code=3, lty=1,col="cornflowerblue")
+#points(evo.ad.ratio5~pi, col="black")
+#arrows(pi,evo.ad.ratio5+ic5a, pi,evo.ad.ratio5-ic5a,lwd=1.5, angle=0,length=0.1,code=3, lty=1,col="tomato")
+#points(maximum5~pi, col="green")
+#
+#minimum5
+#
+#plot(var_tetra_eq~p)
+#points(var_diplo~p)
+
+```
+
+# Graphic for dominance 
+
+```{r, echo = F}
+
+dom=10
+rec=6
+het=((max(dom, rec)+min(dom, rec))/2) + (max(dom, rec) - ((max(dom, rec)+min(dom, rec))/2))/2
+
+rho = 1
+
+AAAA=max(dom, rec)
+AAAa=max(dom, rec)
+AAaa=((max(dom, rec)+min(dom, rec))/2) + (max(dom, rec) - ((max(dom, rec)+min(dom, rec))/2))/2
+Aaaa=((max(dom, rec)+min(dom, rec))/2)
+aaaa=min(dom, rec)
+
+a= max(dom,rec) - ((dom+rec)/2)
+d= het - ((dom+rec)/2)
+
+p = seq(0, 1, by=0.01)
+q = 1-p
+
+e_diplo = c(NULL)
+e_tetra_eq = c(NULL)
+e_tetra_court = c(NULL)
+
+var_diplo = c(NULL)
+var_tetra_eq = c(NULL)
+
+mean_diplo = c(NULL)
+mean_tetra = c(NULL)
+
+for(i in 1:length(p)){
+  
+  z_diplo = dom*(p[i]^2) + het*(2*p[i]*q[i]) + rec*(q[i]^2) 
+  z_tetra = AAAA*(p[i]^4) + AAAa*(4*(p[i]^3)*q[i]) + Aaaa*(4*(q[i]^3)*p[i]) + AAaa*(6*(p[i]^2)*(q[i]^2)) + aaaa*(q[i]^4)
+  
+  AAAAi = AAAA - z_tetra
+  AAAai = AAAa - z_tetra
+  AAaai = AAaa - z_tetra
+  Aaaai = Aaaa - z_tetra
+  aaaai = aaaa - z_tetra
+  
+  alpha_A = (AAAAi*(p[i]^3)) + (AAAai*3*(p[i]^2)*(q[i])) + (AAaai*3*(p[i])*(q[i]^2)) + (Aaaai*(q[i]^3))  
+  alpha_a = (AAAai*(p[i]^3)) + (AAaai*3*(p[i]^2)*(q[i])) + (Aaaai*3*(p[i])*(q[i]^2)) + (aaaai*(q[i]^3)) 
+  
+  Beta_AA= (AAAAi*(p[i]^2)) + (AAAai*2*(p[i])*(q[i])) + (AAaai*(q[i]^2)) - 2*alpha_A
+  Beta_Aa= (AAAai*(p[i]^2)) + (AAaai*2*(p[i])*(q[i])) + (Aaaai*(q[i]^2)) - alpha_A - alpha_a
+  Beta_aa= (aaaai*(q[i]^2)) + (Aaaai*2*(p[i])*(q[i])) + (AAaai*(p[i]^2)) - 2*alpha_a
+  
+  var_add_tetra = (4*p[i]*(alpha_A^2))+(4*q[i]*(alpha_a^2))
+  
+  var_dom_tetra = (6*(p[i]^2)*(Beta_AA^2))+(6*2*p[i]*q[i]*(Beta_Aa^2))+(6*(q[i]^2)*(Beta_aa^2))
+  
+  e_diplo[i] = (2*p[i]*q[i]*((a + d*(q[i]-p[i]))^2))/(z_diplo^2)
+  e_tetra_court[i] = (var_add_tetra + ((var_dom_tetra)/3))/(z_tetra^2)
+  e_tetra_eq[i] = (var_add_tetra)/(z_tetra^2)
+  
+  var_diplo[i] = (2*p[i]*q[i]*((a + d*(q[i]-p[i]))^2))
+  var_tetra_eq[i] = (var_add_tetra)
+  
+  mean_diplo[i] = z_diplo
+  mean_tetra[i] = z_tetra
+  
+}
+
+  
+  x <- p[2:100]
+  y2 <- (e_tetra_court[2:100]/e_diplo[2:100])
+  y3 <- (e_tetra_eq[2:100]/e_diplo[2:100])
+  y1 <- hori[2:100]
+  plot(x, y2, type='l',lty =2, lwd = 3, ylim = c(0,2), col="red")
+  lines(x, y1, lty = 1, lwd=2)
+  lines(x, y3, lty = 3, lwd=3, col="red")
+  lines(x, y3, lty = 2, lwd=3, col="green")
+  
+  #df <- data.frame(x=x, y1=y1, y2=y2)
+  
+  #df$pos_neg <- ifelse(df$y2-df$y1>0,1,-1) # above (1) or below (-1) average
+  
+  # create the number for chunks to be split into lists:
+  #df$chunk <- c(1,cumsum(abs(diff(df$pos_neg)))/2+1) # first element needs to be added`
+  #df$colors <- ifelse(df$pos_neg>0, "lightgreen","tomato") # colors to be used for filling the polygons
+  # create lists to be plotted:
+  #l <- split(df, df$chunk) # we should get 4 sub-lists
+  #lapply(l, function(x) polygon(c(x$x,rev(x$x)),c(x$y2,rev(x$y1)),col=x$colors))
+
+############################################################
+
+  dom=10
+  rec=6
+  het=max(dom, rec)
+  
+  rho = 1
+  
+  AAAA=max(dom, rec)
+  AAAa=max(dom, rec)
+  AAaa=max(dom, rec)
+  Aaaa=((max(dom, rec)+min(dom, rec))/2) + (max(dom, rec) - ((max(dom, rec)+min(dom, rec))/2))/2
+  aaaa=min(dom, rec)
+  
+  a= max(dom,rec) - ((dom+rec)/2)
+  d= het - ((dom+rec)/2)
+  
+  p = seq(0, 1, by=0.01)
+  q = 1-p
+  
+  e_diplo = c(NULL)
+  e_tetra_eq = c(NULL)
+  e_tetra_court = c(NULL)
+  
+  var_diplo = c(NULL)
+  var_tetra_eq = c(NULL)
+  
+  mean_diplo = c(NULL)
+  mean_tetra = c(NULL)
+  
+  for(i in 1:length(p)){
+    
+    z_diplo = dom*(p[i]^2) + het*(2*p[i]*q[i]) + rec*(q[i]^2) 
+    z_tetra = AAAA*(p[i]^4) + AAAa*(4*(p[i]^3)*q[i]) + Aaaa*(4*(q[i]^3)*p[i]) + AAaa*(6*(p[i]^2)*(q[i]^2)) + aaaa*(q[i]^4)
+    
+    AAAAi = AAAA - z_tetra
+    AAAai = AAAa - z_tetra
+    AAaai = AAaa - z_tetra
+    Aaaai = Aaaa - z_tetra
+    aaaai = aaaa - z_tetra
+    
+    alpha_A = (AAAAi*(p[i]^3)) + (AAAai*3*(p[i]^2)*(q[i])) + (AAaai*3*(p[i])*(q[i]^2)) + (Aaaai*(q[i]^3))  
+    alpha_a = (AAAai*(p[i]^3)) + (AAaai*3*(p[i]^2)*(q[i])) + (Aaaai*3*(p[i])*(q[i]^2)) + (aaaai*(q[i]^3)) 
+    
+    Beta_AA= (AAAAi*(p[i]^2)) + (AAAai*2*(p[i])*(q[i])) + (AAaai*(q[i]^2)) - 2*alpha_A
+    Beta_Aa= (AAAai*(p[i]^2)) + (AAaai*2*(p[i])*(q[i])) + (Aaaai*(q[i]^2)) - alpha_A - alpha_a
+    Beta_aa= (aaaai*(q[i]^2)) + (Aaaai*2*(p[i])*(q[i])) + (AAaai*(p[i]^2)) - 2*alpha_a
+    
+    var_add_tetra = (4*p[i]*(alpha_A^2))+(4*q[i]*(alpha_a^2))
+    
+    var_dom_tetra = (6*(p[i]^2)*(Beta_AA^2))+(6*2*p[i]*q[i]*(Beta_Aa^2))+(6*(q[i]^2)*(Beta_aa^2))
+    
+    e_diplo[i] = (2*p[i]*q[i]*((a + d*(q[i]-p[i]))^2))/(z_diplo^2)
+    e_tetra_court[i] = (var_add_tetra + ((var_dom_tetra)/3))/(z_tetra^2)
+    e_tetra_eq[i] = (var_add_tetra)/(z_tetra^2)
+    
+    var_diplo[i] = (2*p[i]*q[i]*((a + d*(q[i]-p[i]))^2))
+    var_tetra_eq[i] = (var_add_tetra)
+    
+    mean_diplo[i] = z_diplo
+    mean_tetra[i] = z_tetra
+    
+  }
+  
+  
+  x <- p[2:100]
+  y2 <- (e_tetra_court[2:100]/e_diplo[2:100])
+  y3 <- (e_tetra_eq[2:100]/e_diplo[2:100])
+  y1 <- hori[2:100]
+  plot(x, y2, type='l',lty =2, lwd = 3, ylim = c(0,2), col="white")
+  lines(x, y1, lty = 3, lwd=2)
+  lines(x[1:3], y2[1:3], lty = 2, lwd=3, col="green")
+  lines(x[4:101], y2[4:101], lty = 2, lwd=3, col="red")
+  lines(x, y3, lty = 2, lwd=3, col="green")
+  
+  #lines(x, y3, lty = 3, lwd=3, col="red")
+  
+  #df <- data.frame(x=x, y1=y1, y2=y2)
+  
+  #df$pos_neg <- ifelse(df$y2-df$y1>0,1,-1) # above (1) or below (-1) average
+  
+  # create the number for chunks to be split into lists:
+  #df$chunk <- c(1,cumsum(abs(diff(df$pos_neg)))/2+1) # first element needs to be added`
+  #df$colors <- ifelse(df$pos_neg>0, "lightgreen","tomato") # colors to be used for filling the polygons
+  # create lists to be plotted:
+  #l <- split(df, df$chunk) # we should get 4 sub-lists
+  #lapply(l, function(x) polygon(c(x$x,rev(x$x)),c(x$y2,rev(x$y1)),col=x$colors))
+  
+##########################################################################################  
+  
+  dom=10
+  rec=6
+  het=max(dom, rec)
+  
+  rho = 1
+  
+  AAAA=max(dom, rec)
+  AAAa=max(dom, rec)
+  AAaa=max(dom, rec)
+  Aaaa=max(dom, rec)
+  aaaa=min(dom, rec)
+  
+  a= max(dom,rec) - ((dom+rec)/2)
+  d= het - ((dom+rec)/2)
+  
+  p = seq(0, 1, by=0.01)
+  q = 1-p
+  
+  e_diplo = c(NULL)
+  e_tetra_eq = c(NULL)
+  e_tetra_court = c(NULL)
+  
+  var_diplo = c(NULL)
+  var_tetra_eq = c(NULL)
+  
+  mean_diplo = c(NULL)
+  mean_tetra = c(NULL)
+  
+  for(i in 1:length(p)){
+    
+    z_diplo = dom*(p[i]^2) + het*(2*p[i]*q[i]) + rec*(q[i]^2) 
+    z_tetra = AAAA*(p[i]^4) + AAAa*(4*(p[i]^3)*q[i]) + Aaaa*(4*(q[i]^3)*p[i]) + AAaa*(6*(p[i]^2)*(q[i]^2)) + aaaa*(q[i]^4)
+    
+    AAAAi = AAAA - z_tetra
+    AAAai = AAAa - z_tetra
+    AAaai = AAaa - z_tetra
+    Aaaai = Aaaa - z_tetra
+    aaaai = aaaa - z_tetra
+    
+    alpha_A = (AAAAi*(p[i]^3)) + (AAAai*3*(p[i]^2)*(q[i])) + (AAaai*3*(p[i])*(q[i]^2)) + (Aaaai*(q[i]^3))  
+    alpha_a = (AAAai*(p[i]^3)) + (AAaai*3*(p[i]^2)*(q[i])) + (Aaaai*3*(p[i])*(q[i]^2)) + (aaaai*(q[i]^3)) 
+    
+    Beta_AA= (AAAAi*(p[i]^2)) + (AAAai*2*(p[i])*(q[i])) + (AAaai*(q[i]^2)) - 2*alpha_A
+    Beta_Aa= (AAAai*(p[i]^2)) + (AAaai*2*(p[i])*(q[i])) + (Aaaai*(q[i]^2)) - alpha_A - alpha_a
+    Beta_aa= (aaaai*(q[i]^2)) + (Aaaai*2*(p[i])*(q[i])) + (AAaai*(p[i]^2)) - 2*alpha_a
+    
+    var_add_tetra = (4*p[i]*(alpha_A^2))+(4*q[i]*(alpha_a^2))
+    
+    var_dom_tetra = (6*(p[i]^2)*(Beta_AA^2))+(6*2*p[i]*q[i]*(Beta_Aa^2))+(6*(q[i]^2)*(Beta_aa^2))
+    
+    e_diplo[i] = (2*p[i]*q[i]*((a + d*(q[i]-p[i]))^2))/(z_diplo^2)
+    e_tetra_court[i] = (var_add_tetra + ((var_dom_tetra)/3))/(z_tetra^2)
+    e_tetra_eq[i] = (var_add_tetra)/(z_tetra^2)
+    
+    var_diplo[i] = (2*p[i]*q[i]*((a + d*(q[i]-p[i]))^2))
+    var_tetra_eq[i] = (var_add_tetra)
+    
+    mean_diplo[i] = z_diplo
+    mean_tetra[i] = z_tetra
+    
+  }
+  
+  
+  x <- p[2:100]
+  y2 <- (e_tetra_court[2:100]/e_diplo[2:100])
+  y3 <- (e_tetra_eq[2:100]/e_diplo[2:100])
+  y1 <- hori[2:100]
+  plot(x, y2, type='l',lty =2, lwd = 3, ylim = c(0,2), col="white")
+  lines(x, y1, lty = 3, lwd=2)
+  lines(x[1:13], y2[1:13], lty = 2, lwd=3, col="green")
+  lines(x[14:101], y2[14:101], lty = 2, lwd=3, col="red")
+  lines(x, y3, lty = 2, lwd=3, col="green")
+  
+  #df <- data.frame(x=x, y1=y1, y2=y2)
+  
+  #df$pos_neg <- ifelse(df$y2-df$y1>0,1,-1) # above (1) or below (-1) average
+  
+  # create the number for chunks to be split into lists:
+  #df$chunk <- c(1,cumsum(abs(diff(df$pos_neg)))/2+1) # first element needs to be added`
+  #df$colors <- ifelse(df$pos_neg>0, "lightgreen","tomato") # colors to be used for filling the polygons
+  # create lists to be plotted:
+  #l <- split(df, df$chunk) # we should get 4 sub-lists
+  #lapply(l, function(x) polygon(c(x$x,rev(x$x)),c(x$y2,rev(x$y1)),col=x$colors))
+  
+######################################################
+  
+  dom=10
+  rec=6
+  het=max(dom, rec)  + (max(dom, rec) - ((max(dom, rec)+min(dom, rec))/2))/2
+  
+  AAAA=max(dom, rec)
+  AAAa=max(dom, rec)  + (max(dom, rec) - ((max(dom, rec)+min(dom, rec))/2))/2
+  AAaa=max(dom, rec)  + (max(dom, rec) - ((max(dom, rec)+min(dom, rec))/2))/2
+  Aaaa=((max(dom, rec)+min(dom, rec))/2) + (max(dom, rec) - ((max(dom, rec)+min(dom, rec))/2))/2
+  aaaa=min(dom, rec)
+
+  a= max(dom,rec) - ((dom+rec)/2)
+  d= het - ((dom+rec)/2)
+  
+  p = seq(0, 1, by=0.01)
+  q = 1-p
+  
+  e_diplo = c(NULL)
+  e_tetra_eq = c(NULL)
+  e_tetra_court = c(NULL)
+  
+  var_diplo = c(NULL)
+  var_tetra_eq = c(NULL)
+  
+  mean_diplo = c(NULL)
+  mean_tetra = c(NULL)
+  
+  for(i in 1:length(p)){
+    
+    z_diplo = dom*(p[i]^2) + het*(2*p[i]*q[i]) + rec*(q[i]^2) 
+    z_tetra = AAAA*(p[i]^4) + AAAa*(4*(p[i]^3)*q[i]) + Aaaa*(4*(q[i]^3)*p[i]) + AAaa*(6*(p[i]^2)*(q[i]^2)) + aaaa*(q[i]^4)
+    
+    AAAAi = AAAA - z_tetra
+    AAAai = AAAa - z_tetra
+    AAaai = AAaa - z_tetra
+    Aaaai = Aaaa - z_tetra
+    aaaai = aaaa - z_tetra
+    
+    alpha_A = (AAAAi*(p[i]^3)) + (AAAai*3*(p[i]^2)*(q[i])) + (AAaai*3*(p[i])*(q[i]^2)) + (Aaaai*(q[i]^3))  
+    alpha_a = (AAAai*(p[i]^3)) + (AAaai*3*(p[i]^2)*(q[i])) + (Aaaai*3*(p[i])*(q[i]^2)) + (aaaai*(q[i]^3)) 
+    
+    Beta_AA= (AAAAi*(p[i]^2)) + (AAAai*2*(p[i])*(q[i])) + (AAaai*(q[i]^2)) - 2*alpha_A
+    Beta_Aa= (AAAai*(p[i]^2)) + (AAaai*2*(p[i])*(q[i])) + (Aaaai*(q[i]^2)) - alpha_A - alpha_a
+    Beta_aa= (aaaai*(q[i]^2)) + (Aaaai*2*(p[i])*(q[i])) + (AAaai*(p[i]^2)) - 2*alpha_a
+    
+    var_add_tetra = (4*p[i]*(alpha_A^2))+(4*q[i]*(alpha_a^2))
+    
+    var_dom_tetra = (6*(p[i]^2)*(Beta_AA^2))+(6*2*p[i]*q[i]*(Beta_Aa^2))+(6*(q[i]^2)*(Beta_aa^2))
+    
+    e_diplo[i] = (2*p[i]*q[i]*((a + d*(q[i]-p[i]))^2))/(z_diplo^2)
+    e_tetra_court[i] = (var_add_tetra + ((var_dom_tetra)/3))/(z_tetra^2)
+    e_tetra_eq[i] = (var_add_tetra)/(z_tetra^2)
+    
+    var_diplo[i] = (2*p[i]*q[i]*((a + d*(q[i]-p[i]))^2))
+    var_tetra_eq[i] = (var_add_tetra)
+    
+    mean_diplo[i] = z_diplo
+    mean_tetra[i] = z_tetra
+    
+  }
+  
+  
+  x <- p[2:100]
+  y2 <- (e_tetra_court[2:100]/e_diplo[2:100])
+  y3 <- (e_tetra_eq[2:100]/e_diplo[2:100])
+  y1 <- hori[2:100]
+  plot(x, y2, type='l',lty =2, lwd = 3, ylim = c(0,2), col="white")
+  lines(x, y1, lty = 3, lwd=2)
+  lines(x[1:73], y2[1:73], lty = 2, lwd=3, col="red")
+  lines(x[74:101], y2[74:101], lty = 2, lwd=3, col="green")
+  lines(x, y3, lty = 2, lwd=3, col="green")
+  
+  #df <- data.frame(x=x, y1=y1, y2=y2)
+  
+  #df$pos_neg <- ifelse(df$y2-df$y1>0,1,-1) # above (1) or below (-1) average
+  
+  # create the number for chunks to be split into lists:
+  #df$chunk <- c(1,cumsum(abs(diff(df$pos_neg)))/2+1) # first element needs to be added`
+  #df$colors <- ifelse(df$pos_neg>0, "lightgreen","tomato") # colors to be used for filling the polygons
+  # create lists to be plotted:
+  #l <- split(df, df$chunk) # we should get 4 sub-lists
+  #lapply(l, function(x) polygon(c(x$x,rev(x$x)),c(x$y2,rev(x$y1)),col=x$colors))
+  
+```
+
+
+# epistatic cases
+
+## Additive
+
+```{r, echo=F}
+
+# Simulation without epistasis
+
+AA_BB = 20
+AA_Bb = 18
+AA_bb = 16
+
+Aa_BB = 18
+Aa_Bb = 16
+Aa_bb = 14
+
+aa_BB = 16
+aa_Bb = 14
+aa_bb = 12
+
+mean_diplo = (AA_BB+AA_Bb+AA_bb+Aa_BB+Aa_Bb+Aa_bb+aa_BB+aa_Bb+aa_bb)/9
+
+AAAA_BBBB = 40
+AAAA_BBBb = 38
+AAAA_BBbb = 36
+AAAA_Bbbb = 34
+AAAA_bbbb = 32
+
+AAAa_BBBB = 38
+AAAa_BBBb = 36
+AAAa_BBbb = 34
+AAAa_Bbbb = 32
+AAAa_bbbb = 30
+
+AAaa_BBBB = 36
+AAaa_BBBb = 34
+AAaa_BBbb = 32
+AAaa_Bbbb = 30
+AAaa_bbbb = 28
+
+Aaaa_BBBB = 34
+Aaaa_BBBb = 32
+Aaaa_BBbb = 30
+Aaaa_Bbbb = 28
+Aaaa_bbbb = 26
+
+aaaa_BBBB = 32
+aaaa_BBBb = 30
+aaaa_BBbb = 28
+aaaa_Bbbb = 26
+aaaa_bbbb = 24
+
+mean_tetra = (AAAA_BBBB+AAAA_BBBb+AAAA_BBbb+AAAA_Bbbb+AAAA_bbbb+AAAa_BBBB+AAAa_BBBb+AAAa_BBbb+AAAa_Bbbb+AAAa_bbbb+AAaa_BBBB+AAaa_BBBb+AAaa_BBbb+AAaa_Bbbb+AAaa_bbbb+Aaaa_BBBB+Aaaa_BBBb+Aaaa_BBbb+Aaaa_Bbbb+Aaaa_bbbb+aaaa_BBBB+aaaa_BBBb+aaaa_BBbb+aaaa_Bbbb+aaaa_bbbb)/25
+
+## Geno ind loci
+
+AA=(AA_BB+AA_Bb+AA_bb)/3
+Aa=(Aa_BB+Aa_Bb+Aa_bb)/3
+aa=(aa_BB+aa_Bb+aa_bb)/3
+
+BB=(AA_BB+Aa_BB+aa_BB)/3
+Bb=(AA_Bb+Aa_Bb+aa_Bb)/3
+bb=(AA_bb+Aa_bb+aa_bb)/3
+
+AAAA=(AAAA_BBBB+AAAA_BBBb+AAAA_BBbb+AAAA_Bbbb+AAAA_bbbb)/5
+AAAa=(AAAa_BBBB+AAAa_BBBb+AAAa_BBbb+AAAa_Bbbb+AAAa_bbbb)/5
+AAaa=(AAaa_BBBB+AAaa_BBBb+AAaa_BBbb+AAaa_Bbbb+AAaa_bbbb)/5
+Aaaa=(Aaaa_BBBB+Aaaa_BBBb+Aaaa_BBbb+Aaaa_Bbbb+Aaaa_bbbb)/5
+aaaa=(aaaa_BBBB+aaaa_BBBb+aaaa_BBbb+aaaa_Bbbb+aaaa_bbbb)/5
+
+BBBB=(AAAA_BBBB+AAAa_BBBB+AAaa_BBBB+Aaaa_BBBB+aaaa_BBBB)/5
+BBBb=(AAAA_BBBb+AAAa_BBBb+AAaa_BBBb+Aaaa_BBBb+aaaa_BBBb)/5
+BBbb=(AAAA_BBbb+AAAa_BBbb+AAaa_BBbb+Aaaa_BBbb+aaaa_BBbb)/5
+Bbbb=(AAAA_Bbbb+AAAa_Bbbb+AAaa_Bbbb+Aaaa_Bbbb+aaaa_Bbbb)/5
+bbbb=(AAAA_bbbb+AAAa_bbbb+AAaa_bbbb+Aaaa_bbbb+aaaa_bbbb)/5
+
+## Non-epi
+
+nAA_BB=AA+BB-mean_diplo
+nAA_Bb=AA+Bb-mean_diplo
+nAA_bb=AA+bb-mean_diplo
+
+nAa_BB=Aa+BB-mean_diplo
+nAa_Bb=Aa+Bb-mean_diplo
+nAa_bb=Aa+bb-mean_diplo
+
+naa_BB=aa+BB-mean_diplo
+naa_Bb=aa+Bb-mean_diplo
+naa_bb=aa+bb-mean_diplo
+
+nAAAA_BBBB = AAAA+BBBB-mean_tetra
+nAAAA_BBBb = AAAA+BBBb-mean_tetra
+nAAAA_BBbb = AAAA+BBbb-mean_tetra
+nAAAA_Bbbb = AAAA+Bbbb-mean_tetra
+nAAAA_bbbb = AAAA+bbbb-mean_tetra
+
+nAAAa_BBBB = AAAa+BBBB-mean_tetra
+nAAAa_BBBb = AAAa+BBBb-mean_tetra
+nAAAa_BBbb = AAAa+BBbb-mean_tetra
+nAAAa_Bbbb = AAAa+Bbbb-mean_tetra
+nAAAa_bbbb = AAAa+bbbb-mean_tetra
+
+nAAaa_BBBB = AAaa+BBBB-mean_tetra
+nAAaa_BBBb = AAaa+BBBb-mean_tetra
+nAAaa_BBbb = AAaa+BBbb-mean_tetra
+nAAaa_Bbbb = AAaa+Bbbb-mean_tetra
+nAAaa_bbbb = AAaa+bbbb-mean_tetra
+
+nAaaa_BBBB = Aaaa+BBBB-mean_tetra
+nAaaa_BBBb = Aaaa+BBBb-mean_tetra
+nAaaa_BBbb = Aaaa+BBbb-mean_tetra
+nAaaa_Bbbb = Aaaa+Bbbb-mean_tetra
+nAaaa_bbbb = Aaaa+bbbb-mean_tetra
+
+naaaa_BBBB = aaaa+BBBB-mean_tetra
+naaaa_BBBb = aaaa+BBBb-mean_tetra
+naaaa_BBbb = aaaa+BBbb-mean_tetra
+naaaa_Bbbb = aaaa+Bbbb-mean_tetra
+naaaa_bbbb = aaaa+bbbb-mean_tetra
+
+## epi 
+
+eAA_BB = AA_BB - nAA_BB
+eAA_Bb = AA_Bb - nAA_Bb
+eAA_bb = AA_bb - nAA_bb
+
+eAa_BB = Aa_BB - nAa_BB
+eAa_Bb = Aa_Bb - nAa_Bb
+eAa_bb = Aa_bb - nAa_bb
+
+eaa_BB = aa_BB - naa_BB
+eaa_Bb = aa_Bb - naa_Bb
+eaa_bb = aa_bb - naa_bb
+
+eAAAA_BBBB = AAAA_BBBB - nAAAA_BBBB
+eAAAA_BBBb = AAAA_BBBb - nAAAA_BBBb
+eAAAA_BBbb = AAAA_BBbb - nAAAA_BBbb
+eAAAA_Bbbb = AAAA_Bbbb - nAAAA_Bbbb
+eAAAA_bbbb = AAAA_bbbb - nAAAA_bbbb
+
+eAAAa_BBBB = AAAa_BBBB - nAAAa_BBBB
+eAAAa_BBBb = AAAa_BBBb - nAAAa_BBBb
+eAAAa_BBbb = AAAa_BBbb - nAAAa_BBbb
+eAAAa_Bbbb = AAAa_Bbbb - nAAAa_Bbbb
+eAAAa_bbbb = AAAa_bbbb - nAAAa_bbbb
+
+eAAaa_BBBB = AAaa_BBBB - nAAaa_BBBB
+eAAaa_BBBb = AAaa_BBBb - nAAaa_BBBb
+eAAaa_BBbb = AAaa_BBbb - nAAaa_BBbb
+eAAaa_Bbbb = AAaa_Bbbb - nAAaa_Bbbb
+eAAaa_bbbb = AAaa_bbbb - nAAaa_bbbb
+
+eAaaa_BBBB = Aaaa_BBBB - nAaaa_BBBB
+eAaaa_BBBb = Aaaa_BBBb - nAaaa_BBBb
+eAaaa_BBbb = Aaaa_BBbb - nAaaa_BBbb
+eAaaa_Bbbb = Aaaa_Bbbb - nAaaa_Bbbb
+eAaaa_bbbb = Aaaa_bbbb - nAaaa_bbbb
+
+eaaaa_BBBB = aaaa_BBBB - naaaa_BBBB
+eaaaa_BBBb = aaaa_BBBb - naaaa_BBBb
+eaaaa_BBbb = aaaa_BBbb - naaaa_BBbb
+eaaaa_Bbbb = aaaa_Bbbb - naaaa_Bbbb
+eaaaa_bbbb = aaaa_bbbb - naaaa_bbbb
+
+p = seq(0.01, 0.99, by=0.01)
+
+evo_diplo = c(NULL)
+evo_tetra = c(NULL)
+
+p_a = c(NULL)
+#p_b = c(NULL)
+
+k=0
+
+for(i in 1:length(p)){
+  #for(j in 1:length(p)){
+
+#### Initialization of frequencies
+
+k = k + 1
+        
+p_a[k] =  p[i]   
+#p_b[k] =  p[j]   
+
+pa = p[i]    
+qa = 1 - pa
+
+pb = 0.25 #p[j]
+qb = 1 - pb
+
+#### Conditional values
+
+ceAA = (pb^2)*eAA_BB + (qb^2)*eAA_bb +2*pb*qb*eAA_Bb
+ceAa = (pb^2)*eAa_BB + (qb^2)*eAa_bb +2*pb*qb*eAa_Bb
+ceaa = (pb^2)*eaa_BB + (qb^2)*eaa_bb +2*pb*qb*eaa_Bb
+
+ceBB = (pa^2)*eAA_BB + (qa^2)*eaa_BB +2*pa*qa*eAa_BB
+ceBb = (pa^2)*eAA_Bb + (qa^2)*eaa_Bb +2*pa*qa*eAa_Bb
+cebb = (pa^2)*eAA_bb + (qa^2)*eaa_bb +2*pa*qa*eAa_bb
+
+ceAAAA = (pb^4)*eAAAA_BBBB + (qb^4)*eAAAA_bbbb + 4*pb*(qb^3)*eAAAA_Bbbb + 4*qb*(pb^3)*eAAAA_BBBb + 6*(pb^2)*(qb^2)*eAAAA_BBbb
+ceAAAa = (pb^4)*eAAAa_BBBB + (qb^4)*eAAAa_bbbb + 4*pb*(qb^3)*eAAAa_Bbbb + 4*qb*(pb^3)*eAAAa_BBBb + 6*(pb^2)*(qb^2)*eAAAa_BBbb
+ceAAaa = (pb^4)*eAAaa_BBBB + (qb^4)*eAAaa_bbbb + 4*pb*(qb^3)*eAAaa_Bbbb + 4*qb*(pb^3)*eAAaa_BBBb + 6*(pb^2)*(qb^2)*eAAaa_BBbb
+ceAaaa = (pb^4)*eAaaa_BBBB + (qb^4)*eAaaa_bbbb + 4*pb*(qb^3)*eAaaa_Bbbb + 4*qb*(pb^3)*eAaaa_BBBb + 6*(pb^2)*(qb^2)*eAaaa_BBbb
+ceaaaa = (pb^4)*eaaaa_BBBB + (qb^4)*eaaaa_bbbb + 4*pb*(qb^3)*eaaaa_Bbbb + 4*qb*(pb^3)*eaaaa_BBBb + 6*(pb^2)*(qb^2)*eaaaa_BBbb
+
+ceBBBB = (pa^4)*eAAAA_BBBB + (qa^4)*eaaaa_BBBB + 4*pa*(qa^3)*eAaaa_BBBB + 4*qa*(pa^3)*eAAAa_BBBB + 6*(pa^2)*(qa^2)*eAAaa_BBBB
+ceBBBb = (pa^4)*eAAAA_BBBb + (qa^4)*eaaaa_BBBb + 4*pa*(qa^3)*eAaaa_BBBb + 4*qa*(pa^3)*eAAAa_BBBb + 6*(pa^2)*(qa^2)*eAAaa_BBBb
+ceBBbb = (pa^4)*eAAAA_BBbb + (qa^4)*eaaaa_BBbb + 4*pa*(qa^3)*eAaaa_BBbb + 4*qa*(pa^3)*eAAAa_BBbb + 6*(pa^2)*(qa^2)*eAAaa_BBbb
+ceBbbb = (pa^4)*eAAAA_Bbbb + (qa^4)*eaaaa_Bbbb + 4*pa*(qa^3)*eAaaa_Bbbb + 4*qa*(pa^3)*eAAAa_Bbbb + 6*(pa^2)*(qa^2)*eAAaa_Bbbb
+cebbbb = (pa^4)*eAAAA_bbbb + (qa^4)*eaaaa_bbbb + 4*pa*(qa^3)*eAaaa_bbbb + 4*qa*(pa^3)*eAAAa_bbbb + 6*(pa^2)*(qa^2)*eAAaa_bbbb
+
+CAA = AA + ceAA
+CAa = Aa + ceAa
+Caa = aa + ceaa
+
+CBB = BB + ceBB
+CBb = Bb + ceBb
+Cbb = bb + cebb
+
+cAAAA = AAAA + ceAAAA
+cAAAa = AAAa + ceAAAa
+cAAaa = AAaa + ceAAaa
+cAaaa = Aaaa + ceAaaa
+caaaa = aaaa + ceaaaa
+
+cBBBB = BBBB + ceBBBB
+cBBBb = BBBb + ceBBBb
+cBBbb = BBbb + ceBBbb
+cBbbb = Bbbb + ceBbbb
+cbbbb = bbbb + cebbbb
+
+z_diplo_a = CAA*(pa^2) + CAa*(2*pa*qa) + Caa*(qa^2) 
+z_diplo_b = CBB*(pb^2) + CBb*(2*pb*qb) + Cbb*(qb^2)
+
+z_tetra_a = cAAAA*(pa^4) + cAAAa*4*(pa^3)*qa + cAaaa*4*(qa^3)*pa + cAAaa*6*(pa^2)*(qa^2) + caaaa*(qa^4)
+z_tetra_b = cBBBB*(pb^4) + cBBBb*4*(pb^3)*qb + cBbbb*4*(qb^3)*pb + cBBbb*6*(pb^2)*(qb^2) + cbbbb*(qb^4)
+
+mean_epi_diplo = (pa^2)*(pb^2)*eAA_BB + (pa^2)*(qb^2)*eAA_bb + (pa^2)*(2*pb*qb)*eAA_Bb +(qa^2)*(pb^2)*eaa_BB + (qa^2)*(qb^2)*eaa_bb + (qa^2)*(2*pb*qb)*eaa_Bb + (2*pa*qa)*(pb^2)*eAa_BB + (2*pa*qa)*(qb^2)*eAa_bb + (2*pa*qa)*(2*pb*qb)*eAa_Bb
+
+mean_epi_tetra = (pa^4)*(pb^4)*eAAAA_BBBB + (pa^4)*(qb^4)*eAAAA_bbbb + (pa^4)*(4*(pb^3)*qb)*eAAAA_BBBb + (pa^4)*(4*(qb^3)*pb)*eAAAA_Bbbb + (pa^4)*(6*(pb^2)*(qb^2))*eAAAA_BBbb + (qa^4)*(pb^4)*eaaaa_BBBB + (qa^4)*(qb^4)*eaaaa_bbbb + (qa^4)*(4*(pb^3)*qb)*eaaaa_BBBb + (qa^4)*(4*(qb^3)*pb)*eaaaa_Bbbb + (qa^4)*(6*(pb^2)*(qb^2))*eaaaa_BBbb + (4*(pa^3)*qa)*(pb^4)*eAAAa_BBBB + (4*(pa^3)*qa)*(qb^4)*eAAAa_bbbb + (4*(pa^3)*qa)*(4*(pb^3)*qb)*eAAAa_BBBb + (4*(pa^3)*qa)*(4*(qb^3)*pb)*eAAAa_Bbbb + (4*(pa^3)*qa)*(6*(pb^2)*(qb^2))*eAAAa_BBbb + (4*(qa^3)*pa)*(pb^4)*eAaaa_BBBB + (4*(qa^3)*pa)*(qb^4)*eAaaa_bbbb + (4*(qa^3)*pa)*(4*(pb^3)*qb)*eAaaa_BBBb + (4*(qa^3)*pa)*(4*(qb^3)*pb)*eAaaa_Bbbb + (4*(qa^3)*pa)*(6*(pb^2)*(qb^2))*eAaaa_BBbb + (6*(pa^2)*(qa^2))*(pb^4)*eAAaa_BBBB + (6*(pa^2)*(qa^2))*(qb^4)*eAAaa_bbbb + (6*(pa^2)*(qa^2))*(4*(pb^3)*qb)*eAAaa_BBBb + (6*(pa^2)*(qa^2))*(4*(qb^3)*pb)*eAAaa_Bbbb + (6*(pa^2)*(qa^2))*(6*(pb^2)*(qb^2))*eAAaa_BBbb
+
+###############################
+
+alpha_A_dip = pa*CAA + qa*CAa - z_diplo_a
+alpha_a_dip = pa*CAa + qa*Caa - z_diplo_a
+
+alpha_B_dip = pb*CBB + qb*CBb - z_diplo_b
+alpha_b_dip = pb*CBb + qb*Cbb - z_diplo_b
+
+alpha_A_tet = (pa^3)*cAAAA + (qa^3)*cAaaa + (3*(pa^2)*(qa))*cAAAa + (3*(pa)*(qa^2))*cAAaa - z_tetra_a
+alpha_a_tet = (pa^3)*cAAAa + (qa^3)*caaaa + (3*(pa^2)*(qa))*cAAaa + (3*(pa)*(qa^2))*cAaaa - z_tetra_a
+
+alpha_B_tet = (pb^3)*cBBBB + (qb^3)*cBbbb + (3*(pb^2)*(qb))*cBBBb + (3*(pb)*(qb^2))*cBBbb - z_tetra_b
+alpha_b_tet = (pb^3)*cBBBb + (qb^3)*cbbbb + (3*(pb^2)*(qb))*cBBbb + (3*(pb)*(qb^2))*cBbbb - z_tetra_b
+
+Beta_AA = (pa^2)*cAAAA + (qa^2)*cAAaa + 2*pa*qa*cAAAa - 2*alpha_A_tet - z_tetra_a 
+Beta_Aa = (pa^2)*cAAAa + (qa^2)*cAaaa + 2*pa*qa*cAAaa - alpha_A_tet - alpha_a_tet - z_tetra_a
+Beta_aa = (pa^2)*cAAaa + (qa^2)*caaaa + 2*pa*qa*cAaaa - 2*alpha_a_tet - z_tetra_a
+
+Beta_BB = (pb^2)*cBBBB + (qb^2)*cBBbb + 2*pb*qb*cBBBb - 2*alpha_B_tet - z_tetra_b
+Beta_Bb = (pb^2)*cBBBb + (qb^2)*cBbbb + 2*pb*qb*cBBbb - alpha_B_tet - alpha_b_tet - z_tetra_b
+Beta_bb = (pb^2)*cBBbb + (qb^2)*cbbbb + 2*pb*qb*cBbbb - 2*alpha_b_tet - z_tetra_b
+  
+Var_add_dip = 2*pa*(alpha_A_dip^2) + 2*qa*(alpha_a_dip^2) + 2*pb*(alpha_B_dip^2) + 2*qb*(alpha_b_dip^2)
+
+mean_dip = AA*(pa^2) + Aa*(2*pa*qa) + aa*(qa^2) + BB*(pb^2) + Bb*(2*pb*qb) + bb*(qb^2) + mean_epi_diplo
+
+evo_diplo[k] = Var_add_dip/(mean_dip^2)
+
+Var_add_tetra = 4*pa*(alpha_A_tet^2) + 4*qa*(alpha_a_tet^2) + 4*pb*(alpha_B_tet^2) + 4*qb*(alpha_b_tet^2)
+
+Var_dom_tetra = 6*(pa^2)*(Beta_AA^2) + 6*(qa^2)*(Beta_aa^2) + 12*pa*qa*(Beta_Aa^2) + 6*(pb^2)*(Beta_BB^2) + 6*(qb^2)*(Beta_bb^2) + 12*pb*qb*(Beta_Bb^2)
+
+mean_tet = AAAA*(pa^4) + aaaa*(qa^4) + AAAa*(4*(pa^3)*(qa)) + Aaaa*(4*(qa^3)*(pa)) + AAaa*(6*(pa^2)*(qa^2)) + BBBB*(pb^4) + bbbb*(qb^4) + BBBb*(4*(pb^3)*(qb)) + Bbbb*(4*(qb^3)*(pb)) + BBbb*(6*(pb^2)*(qb^2)) + mean_epi_tetra
+
+evo_tetra[k] = (Var_add_tetra + (Var_dom_tetra/3))/(mean_tet^2)
+
+  #}
+}
+
+###########################################################
+
+# With epistasis +
+
+AA_BB = 24
+AA_Bb = 20.7
+AA_bb = 16
+
+Aa_BB = 20.7
+Aa_Bb = 17.6
+Aa_bb = 14
+
+aa_BB = 16
+aa_Bb = 14
+aa_bb = 12
+
+mean_diplo = (AA_BB+AA_Bb+AA_bb+Aa_BB+Aa_Bb+Aa_bb+aa_BB+aa_Bb+aa_bb)/9
+
+AAAA_BBBB = 56
+AAAA_BBBb = 51.3
+AAAA_BBbb = 46.8
+AAAA_Bbbb = 42.5
+AAAA_bbbb = 32
+
+AAAa_BBBB = 51.3
+AAAa_BBBb = 46.8
+AAAa_BBbb = 42.5
+AAAa_Bbbb = 38.4
+AAAa_bbbb = 30
+
+AAaa_BBBB = 46.8
+AAaa_BBBb = 42.5
+AAaa_BBbb = 38.4
+AAaa_Bbbb = 34.5
+AAaa_bbbb = 28
+
+Aaaa_BBBB = 42.5
+Aaaa_BBBb = 38.4
+Aaaa_BBbb = 34.5
+Aaaa_Bbbb = 30.8
+Aaaa_bbbb = 26
+
+aaaa_BBBB = 32
+aaaa_BBBb = 30
+aaaa_BBbb = 28
+aaaa_Bbbb = 26
+aaaa_bbbb = 24
+
+mean_tetra = (AAAA_BBBB+AAAA_BBBb+AAAA_BBbb+AAAA_Bbbb+AAAA_bbbb+AAAa_BBBB+AAAa_BBBb+AAAa_BBbb+AAAa_Bbbb+AAAa_bbbb+AAaa_BBBB+AAaa_BBBb+AAaa_BBbb+AAaa_Bbbb+AAaa_bbbb+Aaaa_BBBB+Aaaa_BBBb+Aaaa_BBbb+Aaaa_Bbbb+Aaaa_bbbb+aaaa_BBBB+aaaa_BBBb+aaaa_BBbb+aaaa_Bbbb+aaaa_bbbb)/25
+
+## Geno ind loci
+
+AA=(AA_BB+AA_Bb+AA_bb)/3
+Aa=(Aa_BB+Aa_Bb+Aa_bb)/3
+aa=(aa_BB+aa_Bb+aa_bb)/3
+
+BB=(AA_BB+Aa_BB+aa_BB)/3
+Bb=(AA_Bb+Aa_Bb+aa_Bb)/3
+bb=(AA_bb+Aa_bb+aa_bb)/3
+
+AAAA=(AAAA_BBBB+AAAA_BBBb+AAAA_BBbb+AAAA_Bbbb+AAAA_bbbb)/5
+AAAa=(AAAa_BBBB+AAAa_BBBb+AAAa_BBbb+AAAa_Bbbb+AAAa_bbbb)/5
+AAaa=(AAaa_BBBB+AAaa_BBBb+AAaa_BBbb+AAaa_Bbbb+AAaa_bbbb)/5
+Aaaa=(Aaaa_BBBB+Aaaa_BBBb+Aaaa_BBbb+Aaaa_Bbbb+Aaaa_bbbb)/5
+aaaa=(aaaa_BBBB+aaaa_BBBb+aaaa_BBbb+aaaa_Bbbb+aaaa_bbbb)/5
+
+BBBB=(AAAA_BBBB+AAAa_BBBB+AAaa_BBBB+Aaaa_BBBB+aaaa_BBBB)/5
+BBBb=(AAAA_BBBb+AAAa_BBBb+AAaa_BBBb+Aaaa_BBBb+aaaa_BBBb)/5
+BBbb=(AAAA_BBbb+AAAa_BBbb+AAaa_BBbb+Aaaa_BBbb+aaaa_BBbb)/5
+Bbbb=(AAAA_Bbbb+AAAa_Bbbb+AAaa_Bbbb+Aaaa_Bbbb+aaaa_Bbbb)/5
+bbbb=(AAAA_bbbb+AAAa_bbbb+AAaa_bbbb+Aaaa_bbbb+aaaa_bbbb)/5
+
+## Non-epi
+
+nAA_BB=AA+BB-mean_diplo
+nAA_Bb=AA+Bb-mean_diplo
+nAA_bb=AA+bb-mean_diplo
+
+nAa_BB=Aa+BB-mean_diplo
+nAa_Bb=Aa+Bb-mean_diplo
+nAa_bb=Aa+bb-mean_diplo
+
+naa_BB=aa+BB-mean_diplo
+naa_Bb=aa+Bb-mean_diplo
+naa_bb=aa+bb-mean_diplo
+
+nAAAA_BBBB = AAAA+BBBB-mean_tetra
+nAAAA_BBBb = AAAA+BBBb-mean_tetra
+nAAAA_BBbb = AAAA+BBbb-mean_tetra
+nAAAA_Bbbb = AAAA+Bbbb-mean_tetra
+nAAAA_bbbb = AAAA+bbbb-mean_tetra
+
+nAAAa_BBBB = AAAa+BBBB-mean_tetra
+nAAAa_BBBb = AAAa+BBBb-mean_tetra
+nAAAa_BBbb = AAAa+BBbb-mean_tetra
+nAAAa_Bbbb = AAAa+Bbbb-mean_tetra
+nAAAa_bbbb = AAAa+bbbb-mean_tetra
+
+nAAaa_BBBB = AAaa+BBBB-mean_tetra
+nAAaa_BBBb = AAaa+BBBb-mean_tetra
+nAAaa_BBbb = AAaa+BBbb-mean_tetra
+nAAaa_Bbbb = AAaa+Bbbb-mean_tetra
+nAAaa_bbbb = AAaa+bbbb-mean_tetra
+
+nAaaa_BBBB = Aaaa+BBBB-mean_tetra
+nAaaa_BBBb = Aaaa+BBBb-mean_tetra
+nAaaa_BBbb = Aaaa+BBbb-mean_tetra
+nAaaa_Bbbb = Aaaa+Bbbb-mean_tetra
+nAaaa_bbbb = Aaaa+bbbb-mean_tetra
+
+naaaa_BBBB = aaaa+BBBB-mean_tetra
+naaaa_BBBb = aaaa+BBBb-mean_tetra
+naaaa_BBbb = aaaa+BBbb-mean_tetra
+naaaa_Bbbb = aaaa+Bbbb-mean_tetra
+naaaa_bbbb = aaaa+bbbb-mean_tetra
+
+## epi 
+
+eAA_BB = AA_BB - nAA_BB
+eAA_Bb = AA_Bb - nAA_Bb
+eAA_bb = AA_bb - nAA_bb
+
+eAa_BB = Aa_BB - nAa_BB
+eAa_Bb = Aa_Bb - nAa_Bb
+eAa_bb = Aa_bb - nAa_bb
+
+eaa_BB = aa_BB - naa_BB
+eaa_Bb = aa_Bb - naa_Bb
+eaa_bb = aa_bb - naa_bb
+
+eAAAA_BBBB = AAAA_BBBB - nAAAA_BBBB
+eAAAA_BBBb = AAAA_BBBb - nAAAA_BBBb
+eAAAA_BBbb = AAAA_BBbb - nAAAA_BBbb
+eAAAA_Bbbb = AAAA_Bbbb - nAAAA_Bbbb
+eAAAA_bbbb = AAAA_bbbb - nAAAA_bbbb
+
+eAAAa_BBBB = AAAa_BBBB - nAAAa_BBBB
+eAAAa_BBBb = AAAa_BBBb - nAAAa_BBBb
+eAAAa_BBbb = AAAa_BBbb - nAAAa_BBbb
+eAAAa_Bbbb = AAAa_Bbbb - nAAAa_Bbbb
+eAAAa_bbbb = AAAa_bbbb - nAAAa_bbbb
+
+eAAaa_BBBB = AAaa_BBBB - nAAaa_BBBB
+eAAaa_BBBb = AAaa_BBBb - nAAaa_BBBb
+eAAaa_BBbb = AAaa_BBbb - nAAaa_BBbb
+eAAaa_Bbbb = AAaa_Bbbb - nAAaa_Bbbb
+eAAaa_bbbb = AAaa_bbbb - nAAaa_bbbb
+
+eAaaa_BBBB = Aaaa_BBBB - nAaaa_BBBB
+eAaaa_BBBb = Aaaa_BBBb - nAaaa_BBBb
+eAaaa_BBbb = Aaaa_BBbb - nAaaa_BBbb
+eAaaa_Bbbb = Aaaa_Bbbb - nAaaa_Bbbb
+eAaaa_bbbb = Aaaa_bbbb - nAaaa_bbbb
+
+eaaaa_BBBB = aaaa_BBBB - naaaa_BBBB
+eaaaa_BBBb = aaaa_BBBb - naaaa_BBBb
+eaaaa_BBbb = aaaa_BBbb - naaaa_BBbb
+eaaaa_Bbbb = aaaa_Bbbb - naaaa_Bbbb
+eaaaa_bbbb = aaaa_bbbb - naaaa_bbbb
+
+evo_diplo_epip = c(NULL)
+evo_tetra_epip_add = c(NULL)
+evo_tetra_epip = c(NULL)
+
+k=0
+
+for(i in 1:length(p)){
+  for(j in 1:length(p)){
+
+#### Initialization of frequencies
+
+k = k + 1
+        
+p_a[k] =  p[i]   
+p_b[k] =  p[j]   
+
+pa = p[i]    
+qa = 1 - pa
+
+pb = p[j]
+qb = 1 - pb
+
+#### Conditional values
+
+ceAA = (pb^2)*eAA_BB + (qb^2)*eAA_bb +2*pb*qb*eAA_Bb
+ceAa = (pb^2)*eAa_BB + (qb^2)*eAa_bb +2*pb*qb*eAa_Bb
+ceaa = (pb^2)*eaa_BB + (qb^2)*eaa_bb +2*pb*qb*eaa_Bb
+
+ceBB = (pa^2)*eAA_BB + (qa^2)*eaa_BB +2*pa*qa*eAa_BB
+ceBb = (pa^2)*eAA_Bb + (qa^2)*eaa_Bb +2*pa*qa*eAa_Bb
+cebb = (pa^2)*eAA_bb + (qa^2)*eaa_bb +2*pa*qa*eAa_bb
+
+ceAAAA = (pb^4)*eAAAA_BBBB + (qb^4)*eAAAA_bbbb + 4*pb*(qb^3)*eAAAA_Bbbb + 4*qb*(pb^3)*eAAAA_BBBb + 6*(pb^2)*(qb^2)*eAAAA_BBbb
+ceAAAa = (pb^4)*eAAAa_BBBB + (qb^4)*eAAAa_bbbb + 4*pb*(qb^3)*eAAAa_Bbbb + 4*qb*(pb^3)*eAAAa_BBBb + 6*(pb^2)*(qb^2)*eAAAa_BBbb
+ceAAaa = (pb^4)*eAAaa_BBBB + (qb^4)*eAAaa_bbbb + 4*pb*(qb^3)*eAAaa_Bbbb + 4*qb*(pb^3)*eAAaa_BBBb + 6*(pb^2)*(qb^2)*eAAaa_BBbb
+ceAaaa = (pb^4)*eAaaa_BBBB + (qb^4)*eAaaa_bbbb + 4*pb*(qb^3)*eAaaa_Bbbb + 4*qb*(pb^3)*eAaaa_BBBb + 6*(pb^2)*(qb^2)*eAaaa_BBbb
+ceaaaa = (pb^4)*eaaaa_BBBB + (qb^4)*eaaaa_bbbb + 4*pb*(qb^3)*eaaaa_Bbbb + 4*qb*(pb^3)*eaaaa_BBBb + 6*(pb^2)*(qb^2)*eaaaa_BBbb
+
+ceBBBB = (pa^4)*eAAAA_BBBB + (qa^4)*eaaaa_BBBB + 4*pa*(qa^3)*eAaaa_BBBB + 4*qa*(pa^3)*eAAAa_BBBB + 6*(pa^2)*(qa^2)*eAAaa_BBBB
+ceBBBb = (pa^4)*eAAAA_BBBb + (qa^4)*eaaaa_BBBb + 4*pa*(qa^3)*eAaaa_BBBb + 4*qa*(pa^3)*eAAAa_BBBb + 6*(pa^2)*(qa^2)*eAAaa_BBBb
+ceBBbb = (pa^4)*eAAAA_BBbb + (qa^4)*eaaaa_BBbb + 4*pa*(qa^3)*eAaaa_BBbb + 4*qa*(pa^3)*eAAAa_BBbb + 6*(pa^2)*(qa^2)*eAAaa_BBbb
+ceBbbb = (pa^4)*eAAAA_Bbbb + (qa^4)*eaaaa_Bbbb + 4*pa*(qa^3)*eAaaa_Bbbb + 4*qa*(pa^3)*eAAAa_Bbbb + 6*(pa^2)*(qa^2)*eAAaa_Bbbb
+cebbbb = (pa^4)*eAAAA_bbbb + (qa^4)*eaaaa_bbbb + 4*pa*(qa^3)*eAaaa_bbbb + 4*qa*(pa^3)*eAAAa_bbbb + 6*(pa^2)*(qa^2)*eAAaa_bbbb
+
+CAA = AA + ceAA
+CAa = Aa + ceAa
+Caa = aa + ceaa
+
+CBB = BB + ceBB
+CBb = Bb + ceBb
+Cbb = bb + cebb
+
+cAAAA = AAAA + ceAAAA
+cAAAa = AAAa + ceAAAa
+cAAaa = AAaa + ceAAaa
+cAaaa = Aaaa + ceAaaa
+caaaa = aaaa + ceaaaa
+
+cBBBB = BBBB + ceBBBB
+cBBBb = BBBb + ceBBBb
+cBBbb = BBbb + ceBBbb
+cBbbb = Bbbb + ceBbbb
+cbbbb = bbbb + cebbbb
+
+z_diplo_a = CAA*(pa^2) + CAa*(2*pa*qa) + Caa*(qa^2) 
+z_diplo_b = CBB*(pb^2) + CBb*(2*pb*qb) + Cbb*(qb^2)
+
+z_tetra_a = cAAAA*(pa^4) + cAAAa*4*(pa^3)*qa + cAaaa*4*(qa^3)*pa + cAAaa*6*(pa^2)*(qa^2) + caaaa*(qa^4)
+z_tetra_b = cBBBB*(pb^4) + cBBBb*4*(pb^3)*qb + cBbbb*4*(qb^3)*pb + cBBbb*6*(pb^2)*(qb^2) + cbbbb*(qb^4)
+
+mean_epi_diplo = (pa^2)*(pb^2)*eAA_BB + (pa^2)*(qb^2)*eAA_bb + (pa^2)*(2*pb*qb)*eAA_Bb +(qa^2)*(pb^2)*eaa_BB + (qa^2)*(qb^2)*eaa_bb + (qa^2)*(2*pb*qb)*eaa_Bb + (2*pa*qa)*(pb^2)*eAa_BB + (2*pa*qa)*(qb^2)*eAa_bb + (2*pa*qa)*(2*pb*qb)*eAa_Bb
+
+mean_epi_tetra = (pa^4)*(pb^4)*eAAAA_BBBB + (pa^4)*(qb^4)*eAAAA_bbbb + (pa^4)*(4*(pb^3)*qb)*eAAAA_BBBb + (pa^4)*(4*(qb^3)*pb)*eAAAA_Bbbb + (pa^4)*(6*(pb^2)*(qb^2))*eAAAA_BBbb + (qa^4)*(pb^4)*eaaaa_BBBB + (qa^4)*(qb^4)*eaaaa_bbbb + (qa^4)*(4*(pb^3)*qb)*eaaaa_BBBb + (qa^4)*(4*(qb^3)*pb)*eaaaa_Bbbb + (qa^4)*(6*(pb^2)*(qb^2))*eaaaa_BBbb + (4*(pa^3)*qa)*(pb^4)*eAAAa_BBBB + (4*(pa^3)*qa)*(qb^4)*eAAAa_bbbb + (4*(pa^3)*qa)*(4*(pb^3)*qb)*eAAAa_BBBb + (4*(pa^3)*qa)*(4*(qb^3)*pb)*eAAAa_Bbbb + (4*(pa^3)*qa)*(6*(pb^2)*(qb^2))*eAAAa_BBbb + (4*(qa^3)*pa)*(pb^4)*eAaaa_BBBB + (4*(qa^3)*pa)*(qb^4)*eAaaa_bbbb + (4*(qa^3)*pa)*(4*(pb^3)*qb)*eAaaa_BBBb + (4*(qa^3)*pa)*(4*(qb^3)*pb)*eAaaa_Bbbb + (4*(qa^3)*pa)*(6*(pb^2)*(qb^2))*eAaaa_BBbb + (6*(pa^2)*(qa^2))*(pb^4)*eAAaa_BBBB + (6*(pa^2)*(qa^2))*(qb^4)*eAAaa_bbbb + (6*(pa^2)*(qa^2))*(4*(pb^3)*qb)*eAAaa_BBBb + (6*(pa^2)*(qa^2))*(4*(qb^3)*pb)*eAAaa_Bbbb + (6*(pa^2)*(qa^2))*(6*(pb^2)*(qb^2))*eAAaa_BBbb
+
+###############################
+
+alpha_A_dip = pa*CAA + qa*CAa - z_diplo_a
+alpha_a_dip = pa*CAa + qa*Caa - z_diplo_a
+
+alpha_B_dip = pb*CBB + qb*CBb - z_diplo_b
+alpha_b_dip = pb*CBb + qb*Cbb - z_diplo_b
+
+alpha_A_tet = (pa^3)*cAAAA + (qa^3)*cAaaa + (3*(pa^2)*(qa))*cAAAa + (3*(pa)*(qa^2))*cAAaa - z_tetra_a
+alpha_a_tet = (pa^3)*cAAAa + (qa^3)*caaaa + (3*(pa^2)*(qa))*cAAaa + (3*(pa)*(qa^2))*cAaaa - z_tetra_a
+
+alpha_B_tet = (pb^3)*cBBBB + (qb^3)*cBbbb + (3*(pb^2)*(qb))*cBBBb + (3*(pb)*(qb^2))*cBBbb - z_tetra_b
+alpha_b_tet = (pb^3)*cBBBb + (qb^3)*cbbbb + (3*(pb^2)*(qb))*cBBbb + (3*(pb)*(qb^2))*cBbbb - z_tetra_b
+
+Beta_AA = (pa^2)*cAAAA + (qa^2)*cAAaa + 2*pa*qa*cAAAa - 2*alpha_A_tet - z_tetra_a 
+Beta_Aa = (pa^2)*cAAAa + (qa^2)*cAaaa + 2*pa*qa*cAAaa - alpha_A_tet - alpha_a_tet - z_tetra_a
+Beta_aa = (pa^2)*cAAaa + (qa^2)*caaaa + 2*pa*qa*cAaaa - 2*alpha_a_tet - z_tetra_a
+
+Beta_BB = (pb^2)*cBBBB + (qb^2)*cBBbb + 2*pb*qb*cBBBb - 2*alpha_B_tet - z_tetra_b
+Beta_Bb = (pb^2)*cBBBb + (qb^2)*cBbbb + 2*pb*qb*cBBbb - alpha_B_tet - alpha_b_tet - z_tetra_b
+Beta_bb = (pb^2)*cBBbb + (qb^2)*cbbbb + 2*pb*qb*cBbbb - 2*alpha_b_tet - z_tetra_b
+  
+Var_add_dip = 2*pa*(alpha_A_dip^2) + 2*qa*(alpha_a_dip^2) + 2*pb*(alpha_B_dip^2) + 2*qb*(alpha_b_dip^2)
+
+mean_dip = AA*(pa^2) + Aa*(2*pa*qa) + aa*(qa^2) + BB*(pb^2) + Bb*(2*pb*qb) + bb*(qb^2) + mean_epi_diplo
+
+evo_diplo_epip[k] = Var_add_dip/(mean_dip^2)
+
+Var_add_tetra = 4*pa*(alpha_A_tet^2) + 4*qa*(alpha_a_tet^2) + 4*pb*(alpha_B_tet^2) + 4*qb*(alpha_b_tet^2)
+
+Var_dom_tetra = 6*(pa^2)*(Beta_AA^2) + 6*(qa^2)*(Beta_aa^2) + 12*pa*qa*(Beta_Aa^2) + 6*(pb^2)*(Beta_BB^2) + 6*(qb^2)*(Beta_bb^2) + 12*pb*qb*(Beta_Bb^2)
+
+mean_tet = AAAA*(pa^4) + aaaa*(qa^4) + AAAa*(4*(pa^3)*(qa)) + Aaaa*(4*(qa^3)*(pa)) + AAaa*(6*(pa^2)*(qa^2)) + BBBB*(pb^4) + bbbb*(qb^4) + BBBb*(4*(pb^3)*(qb)) + Bbbb*(4*(qb^3)*(pb)) + BBbb*(6*(pb^2)*(qb^2)) + mean_epi_tetra
+
+evo_tetra_epip[k] = (Var_add_tetra + (Var_dom_tetra/3))/(mean_tet^2)
+evo_tetra_epip_add[k] = (Var_add_tetra )/(mean_tet^2)
+
+  }
+}
+
+###########################################################
+
+# With epistasis -
+
+AA_BB = 16
+AA_Bb = 15.3
+AA_bb = 16
+
+Aa_BB = 15.3
+Aa_Bb = 14.4
+Aa_bb = 14
+
+aa_BB = 16
+aa_Bb = 14
+aa_bb = 12
+
+mean_diplo = (AA_BB+AA_Bb+AA_bb+Aa_BB+Aa_Bb+Aa_bb+aa_BB+aa_Bb+aa_bb)/9
+
+AAAA_BBBB = 24
+AAAA_BBBb = 24.7
+AAAA_BBbb = 25.2
+AAAA_Bbbb = 25.5
+AAAA_bbbb = 32
+
+AAAa_BBBB = 24.7
+AAAa_BBBb = 25.2
+AAAa_BBbb = 25.5
+AAAa_Bbbb = 25.6
+AAAa_bbbb = 30
+
+AAaa_BBBB = 25.2
+AAaa_BBBb = 25.5
+AAaa_BBbb = 25.6
+AAaa_Bbbb = 25.5
+AAaa_bbbb = 28
+
+Aaaa_BBBB = 25.5
+Aaaa_BBBb = 25.6
+Aaaa_BBbb = 25.5
+Aaaa_Bbbb = 25.2
+Aaaa_bbbb = 26
+
+aaaa_BBBB = 32
+aaaa_BBBb = 30
+aaaa_BBbb = 28
+aaaa_Bbbb = 26
+aaaa_bbbb = 24
+
+mean_tetra = (AAAA_BBBB+AAAA_BBBb+AAAA_BBbb+AAAA_Bbbb+AAAA_bbbb+AAAa_BBBB+AAAa_BBBb+AAAa_BBbb+AAAa_Bbbb+AAAa_bbbb+AAaa_BBBB+AAaa_BBBb+AAaa_BBbb+AAaa_Bbbb+AAaa_bbbb+Aaaa_BBBB+Aaaa_BBBb+Aaaa_BBbb+Aaaa_Bbbb+Aaaa_bbbb+aaaa_BBBB+aaaa_BBBb+aaaa_BBbb+aaaa_Bbbb+aaaa_bbbb)/25
+
+## Geno ind loci
+
+AA=(AA_BB+AA_Bb+AA_bb)/3
+Aa=(Aa_BB+Aa_Bb+Aa_bb)/3
+aa=(aa_BB+aa_Bb+aa_bb)/3
+
+BB=(AA_BB+Aa_BB+aa_BB)/3
+Bb=(AA_Bb+Aa_Bb+aa_Bb)/3
+bb=(AA_bb+Aa_bb+aa_bb)/3
+
+AAAA=(AAAA_BBBB+AAAA_BBBb+AAAA_BBbb+AAAA_Bbbb+AAAA_bbbb)/5
+AAAa=(AAAa_BBBB+AAAa_BBBb+AAAa_BBbb+AAAa_Bbbb+AAAa_bbbb)/5
+AAaa=(AAaa_BBBB+AAaa_BBBb+AAaa_BBbb+AAaa_Bbbb+AAaa_bbbb)/5
+Aaaa=(Aaaa_BBBB+Aaaa_BBBb+Aaaa_BBbb+Aaaa_Bbbb+Aaaa_bbbb)/5
+aaaa=(aaaa_BBBB+aaaa_BBBb+aaaa_BBbb+aaaa_Bbbb+aaaa_bbbb)/5
+
+BBBB=(AAAA_BBBB+AAAa_BBBB+AAaa_BBBB+Aaaa_BBBB+aaaa_BBBB)/5
+BBBb=(AAAA_BBBb+AAAa_BBBb+AAaa_BBBb+Aaaa_BBBb+aaaa_BBBb)/5
+BBbb=(AAAA_BBbb+AAAa_BBbb+AAaa_BBbb+Aaaa_BBbb+aaaa_BBbb)/5
+Bbbb=(AAAA_Bbbb+AAAa_Bbbb+AAaa_Bbbb+Aaaa_Bbbb+aaaa_Bbbb)/5
+bbbb=(AAAA_bbbb+AAAa_bbbb+AAaa_bbbb+Aaaa_bbbb+aaaa_bbbb)/5
+
+## Non-epi
+
+nAA_BB=AA+BB-mean_diplo
+nAA_Bb=AA+Bb-mean_diplo
+nAA_bb=AA+bb-mean_diplo
+
+nAa_BB=Aa+BB-mean_diplo
+nAa_Bb=Aa+Bb-mean_diplo
+nAa_bb=Aa+bb-mean_diplo
+
+naa_BB=aa+BB-mean_diplo
+naa_Bb=aa+Bb-mean_diplo
+naa_bb=aa+bb-mean_diplo
+
+nAAAA_BBBB = AAAA+BBBB-mean_tetra
+nAAAA_BBBb = AAAA+BBBb-mean_tetra
+nAAAA_BBbb = AAAA+BBbb-mean_tetra
+nAAAA_Bbbb = AAAA+Bbbb-mean_tetra
+nAAAA_bbbb = AAAA+bbbb-mean_tetra
+
+nAAAa_BBBB = AAAa+BBBB-mean_tetra
+nAAAa_BBBb = AAAa+BBBb-mean_tetra
+nAAAa_BBbb = AAAa+BBbb-mean_tetra
+nAAAa_Bbbb = AAAa+Bbbb-mean_tetra
+nAAAa_bbbb = AAAa+bbbb-mean_tetra
+
+nAAaa_BBBB = AAaa+BBBB-mean_tetra
+nAAaa_BBBb = AAaa+BBBb-mean_tetra
+nAAaa_BBbb = AAaa+BBbb-mean_tetra
+nAAaa_Bbbb = AAaa+Bbbb-mean_tetra
+nAAaa_bbbb = AAaa+bbbb-mean_tetra
+
+nAaaa_BBBB = Aaaa+BBBB-mean_tetra
+nAaaa_BBBb = Aaaa+BBBb-mean_tetra
+nAaaa_BBbb = Aaaa+BBbb-mean_tetra
+nAaaa_Bbbb = Aaaa+Bbbb-mean_tetra
+nAaaa_bbbb = Aaaa+bbbb-mean_tetra
+
+naaaa_BBBB = aaaa+BBBB-mean_tetra
+naaaa_BBBb = aaaa+BBBb-mean_tetra
+naaaa_BBbb = aaaa+BBbb-mean_tetra
+naaaa_Bbbb = aaaa+Bbbb-mean_tetra
+naaaa_bbbb = aaaa+bbbb-mean_tetra
+
+## epi 
+
+eAA_BB = AA_BB - nAA_BB
+eAA_Bb = AA_Bb - nAA_Bb
+eAA_bb = AA_bb - nAA_bb
+
+eAa_BB = Aa_BB - nAa_BB
+eAa_Bb = Aa_Bb - nAa_Bb
+eAa_bb = Aa_bb - nAa_bb
+
+eaa_BB = aa_BB - naa_BB
+eaa_Bb = aa_Bb - naa_Bb
+eaa_bb = aa_bb - naa_bb
+
+eAAAA_BBBB = AAAA_BBBB - nAAAA_BBBB
+eAAAA_BBBb = AAAA_BBBb - nAAAA_BBBb
+eAAAA_BBbb = AAAA_BBbb - nAAAA_BBbb
+eAAAA_Bbbb = AAAA_Bbbb - nAAAA_Bbbb
+eAAAA_bbbb = AAAA_bbbb - nAAAA_bbbb
+
+eAAAa_BBBB = AAAa_BBBB - nAAAa_BBBB
+eAAAa_BBBb = AAAa_BBBb - nAAAa_BBBb
+eAAAa_BBbb = AAAa_BBbb - nAAAa_BBbb
+eAAAa_Bbbb = AAAa_Bbbb - nAAAa_Bbbb
+eAAAa_bbbb = AAAa_bbbb - nAAAa_bbbb
+
+eAAaa_BBBB = AAaa_BBBB - nAAaa_BBBB
+eAAaa_BBBb = AAaa_BBBb - nAAaa_BBBb
+eAAaa_BBbb = AAaa_BBbb - nAAaa_BBbb
+eAAaa_Bbbb = AAaa_Bbbb - nAAaa_Bbbb
+eAAaa_bbbb = AAaa_bbbb - nAAaa_bbbb
+
+eAaaa_BBBB = Aaaa_BBBB - nAaaa_BBBB
+eAaaa_BBBb = Aaaa_BBBb - nAaaa_BBBb
+eAaaa_BBbb = Aaaa_BBbb - nAaaa_BBbb
+eAaaa_Bbbb = Aaaa_Bbbb - nAaaa_Bbbb
+eAaaa_bbbb = Aaaa_bbbb - nAaaa_bbbb
+
+eaaaa_BBBB = aaaa_BBBB - naaaa_BBBB
+eaaaa_BBBb = aaaa_BBBb - naaaa_BBBb
+eaaaa_BBbb = aaaa_BBbb - naaaa_BBbb
+eaaaa_Bbbb = aaaa_Bbbb - naaaa_Bbbb
+eaaaa_bbbb = aaaa_bbbb - naaaa_bbbb
+
+evo_diplo_epim = c(NULL)
+evo_tetra_epim = c(NULL)
+evo_tetra_epim_add = c(NULL)
+
+k=0
+
+for(i in 1:length(p)){
+  #for(j in 1:length(p)){
+
+#### Initialization of frequencies
+
+k = k + 1
+
+p_a[k] =  p[i]   
+#p_b[k] =  p[j]   
+
+pa = p[i]    
+qa = 1 - pa
+
+pb = 0.25 #p[j]
+qb = 1 - pb
+
+#### Conditional values
+
+ceAA = (pb^2)*eAA_BB + (qb^2)*eAA_bb +2*pb*qb*eAA_Bb
+ceAa = (pb^2)*eAa_BB + (qb^2)*eAa_bb +2*pb*qb*eAa_Bb
+ceaa = (pb^2)*eaa_BB + (qb^2)*eaa_bb +2*pb*qb*eaa_Bb
+
+ceBB = (pa^2)*eAA_BB + (qa^2)*eaa_BB +2*pa*qa*eAa_BB
+ceBb = (pa^2)*eAA_Bb + (qa^2)*eaa_Bb +2*pa*qa*eAa_Bb
+cebb = (pa^2)*eAA_bb + (qa^2)*eaa_bb +2*pa*qa*eAa_bb
+
+ceAAAA = (pb^4)*eAAAA_BBBB + (qb^4)*eAAAA_bbbb + 4*pb*(qb^3)*eAAAA_Bbbb + 4*qb*(pb^3)*eAAAA_BBBb + 6*(pb^2)*(qb^2)*eAAAA_BBbb
+ceAAAa = (pb^4)*eAAAa_BBBB + (qb^4)*eAAAa_bbbb + 4*pb*(qb^3)*eAAAa_Bbbb + 4*qb*(pb^3)*eAAAa_BBBb + 6*(pb^2)*(qb^2)*eAAAa_BBbb
+ceAAaa = (pb^4)*eAAaa_BBBB + (qb^4)*eAAaa_bbbb + 4*pb*(qb^3)*eAAaa_Bbbb + 4*qb*(pb^3)*eAAaa_BBBb + 6*(pb^2)*(qb^2)*eAAaa_BBbb
+ceAaaa = (pb^4)*eAaaa_BBBB + (qb^4)*eAaaa_bbbb + 4*pb*(qb^3)*eAaaa_Bbbb + 4*qb*(pb^3)*eAaaa_BBBb + 6*(pb^2)*(qb^2)*eAaaa_BBbb
+ceaaaa = (pb^4)*eaaaa_BBBB + (qb^4)*eaaaa_bbbb + 4*pb*(qb^3)*eaaaa_Bbbb + 4*qb*(pb^3)*eaaaa_BBBb + 6*(pb^2)*(qb^2)*eaaaa_BBbb
+
+ceBBBB = (pa^4)*eAAAA_BBBB + (qa^4)*eaaaa_BBBB + 4*pa*(qa^3)*eAaaa_BBBB + 4*qa*(pa^3)*eAAAa_BBBB + 6*(pa^2)*(qa^2)*eAAaa_BBBB
+ceBBBb = (pa^4)*eAAAA_BBBb + (qa^4)*eaaaa_BBBb + 4*pa*(qa^3)*eAaaa_BBBb + 4*qa*(pa^3)*eAAAa_BBBb + 6*(pa^2)*(qa^2)*eAAaa_BBBb
+ceBBbb = (pa^4)*eAAAA_BBbb + (qa^4)*eaaaa_BBbb + 4*pa*(qa^3)*eAaaa_BBbb + 4*qa*(pa^3)*eAAAa_BBbb + 6*(pa^2)*(qa^2)*eAAaa_BBbb
+ceBbbb = (pa^4)*eAAAA_Bbbb + (qa^4)*eaaaa_Bbbb + 4*pa*(qa^3)*eAaaa_Bbbb + 4*qa*(pa^3)*eAAAa_Bbbb + 6*(pa^2)*(qa^2)*eAAaa_Bbbb
+cebbbb = (pa^4)*eAAAA_bbbb + (qa^4)*eaaaa_bbbb + 4*pa*(qa^3)*eAaaa_bbbb + 4*qa*(pa^3)*eAAAa_bbbb + 6*(pa^2)*(qa^2)*eAAaa_bbbb
+
+CAA = AA + ceAA
+CAa = Aa + ceAa
+Caa = aa + ceaa
+
+CBB = BB + ceBB
+CBb = Bb + ceBb
+Cbb = bb + cebb
+
+cAAAA = AAAA + ceAAAA
+cAAAa = AAAa + ceAAAa
+cAAaa = AAaa + ceAAaa
+cAaaa = Aaaa + ceAaaa
+caaaa = aaaa + ceaaaa
+
+cBBBB = BBBB + ceBBBB
+cBBBb = BBBb + ceBBBb
+cBBbb = BBbb + ceBBbb
+cBbbb = Bbbb + ceBbbb
+cbbbb = bbbb + cebbbb
+
+z_diplo_a = CAA*(pa^2) + CAa*(2*pa*qa) + Caa*(qa^2) 
+z_diplo_b = CBB*(pb^2) + CBb*(2*pb*qb) + Cbb*(qb^2)
+
+z_tetra_a = cAAAA*(pa^4) + cAAAa*4*(pa^3)*qa + cAaaa*4*(qa^3)*pa + cAAaa*6*(pa^2)*(qa^2) + caaaa*(qa^4)
+z_tetra_b = cBBBB*(pb^4) + cBBBb*4*(pb^3)*qb + cBbbb*4*(qb^3)*pb + cBBbb*6*(pb^2)*(qb^2) + cbbbb*(qb^4)
+
+mean_epi_diplo = (pa^2)*(pb^2)*eAA_BB + (pa^2)*(qb^2)*eAA_bb + (pa^2)*(2*pb*qb)*eAA_Bb +(qa^2)*(pb^2)*eaa_BB + (qa^2)*(qb^2)*eaa_bb + (qa^2)*(2*pb*qb)*eaa_Bb + (2*pa*qa)*(pb^2)*eAa_BB + (2*pa*qa)*(qb^2)*eAa_bb + (2*pa*qa)*(2*pb*qb)*eAa_Bb
+
+mean_epi_tetra = (pa^4)*(pb^4)*eAAAA_BBBB + (pa^4)*(qb^4)*eAAAA_bbbb + (pa^4)*(4*(pb^3)*qb)*eAAAA_BBBb + (pa^4)*(4*(qb^3)*pb)*eAAAA_Bbbb + (pa^4)*(6*(pb^2)*(qb^2))*eAAAA_BBbb + (qa^4)*(pb^4)*eaaaa_BBBB + (qa^4)*(qb^4)*eaaaa_bbbb + (qa^4)*(4*(pb^3)*qb)*eaaaa_BBBb + (qa^4)*(4*(qb^3)*pb)*eaaaa_Bbbb + (qa^4)*(6*(pb^2)*(qb^2))*eaaaa_BBbb + (4*(pa^3)*qa)*(pb^4)*eAAAa_BBBB + (4*(pa^3)*qa)*(qb^4)*eAAAa_bbbb + (4*(pa^3)*qa)*(4*(pb^3)*qb)*eAAAa_BBBb + (4*(pa^3)*qa)*(4*(qb^3)*pb)*eAAAa_Bbbb + (4*(pa^3)*qa)*(6*(pb^2)*(qb^2))*eAAAa_BBbb + (4*(qa^3)*pa)*(pb^4)*eAaaa_BBBB + (4*(qa^3)*pa)*(qb^4)*eAaaa_bbbb + (4*(qa^3)*pa)*(4*(pb^3)*qb)*eAaaa_BBBb + (4*(qa^3)*pa)*(4*(qb^3)*pb)*eAaaa_Bbbb + (4*(qa^3)*pa)*(6*(pb^2)*(qb^2))*eAaaa_BBbb + (6*(pa^2)*(qa^2))*(pb^4)*eAAaa_BBBB + (6*(pa^2)*(qa^2))*(qb^4)*eAAaa_bbbb + (6*(pa^2)*(qa^2))*(4*(pb^3)*qb)*eAAaa_BBBb + (6*(pa^2)*(qa^2))*(4*(qb^3)*pb)*eAAaa_Bbbb + (6*(pa^2)*(qa^2))*(6*(pb^2)*(qb^2))*eAAaa_BBbb
+
+###############################
+
+alpha_A_dip = pa*CAA + qa*CAa - z_diplo_a
+alpha_a_dip = pa*CAa + qa*Caa - z_diplo_a
+
+alpha_B_dip = pb*CBB + qb*CBb - z_diplo_b
+alpha_b_dip = pb*CBb + qb*Cbb - z_diplo_b
+
+alpha_A_tet = (pa^3)*cAAAA + (qa^3)*cAaaa + (3*(pa^2)*(qa))*cAAAa + (3*(pa)*(qa^2))*cAAaa - z_tetra_a
+alpha_a_tet = (pa^3)*cAAAa + (qa^3)*caaaa + (3*(pa^2)*(qa))*cAAaa + (3*(pa)*(qa^2))*cAaaa - z_tetra_a
+
+alpha_B_tet = (pb^3)*cBBBB + (qb^3)*cBbbb + (3*(pb^2)*(qb))*cBBBb + (3*(pb)*(qb^2))*cBBbb - z_tetra_b
+alpha_b_tet = (pb^3)*cBBBb + (qb^3)*cbbbb + (3*(pb^2)*(qb))*cBBbb + (3*(pb)*(qb^2))*cBbbb - z_tetra_b
+
+Beta_AA = (pa^2)*cAAAA + (qa^2)*cAAaa + 2*pa*qa*cAAAa - 2*alpha_A_tet - z_tetra_a 
+Beta_Aa = (pa^2)*cAAAa + (qa^2)*cAaaa + 2*pa*qa*cAAaa - alpha_A_tet - alpha_a_tet - z_tetra_a
+Beta_aa = (pa^2)*cAAaa + (qa^2)*caaaa + 2*pa*qa*cAaaa - 2*alpha_a_tet - z_tetra_a
+
+Beta_BB = (pb^2)*cBBBB + (qb^2)*cBBbb + 2*pb*qb*cBBBb - 2*alpha_B_tet - z_tetra_b
+Beta_Bb = (pb^2)*cBBBb + (qb^2)*cBbbb + 2*pb*qb*cBBbb - alpha_B_tet - alpha_b_tet - z_tetra_b
+Beta_bb = (pb^2)*cBBbb + (qb^2)*cbbbb + 2*pb*qb*cBbbb - 2*alpha_b_tet - z_tetra_b
+  
+Var_add_dip = 2*pa*(alpha_A_dip^2) + 2*qa*(alpha_a_dip^2) + 2*pb*(alpha_B_dip^2) + 2*qb*(alpha_b_dip^2)
+
+mean_dip = AA*(pa^2) + Aa*(2*pa*qa) + aa*(qa^2) + BB*(pb^2) + Bb*(2*pb*qb) + bb*(qb^2) + mean_epi_diplo
+
+evo_diplo_epim[k] = Var_add_dip/(mean_dip^2)
+
+Var_add_tetra = 4*pa*(alpha_A_tet^2) + 4*qa*(alpha_a_tet^2) + 4*pb*(alpha_B_tet^2) + 4*qb*(alpha_b_tet^2)
+
+Var_dom_tetra = 6*(pa^2)*(Beta_AA^2) + 6*(qa^2)*(Beta_aa^2) + 12*pa*qa*(Beta_Aa^2) + 6*(pb^2)*(Beta_BB^2) + 6*(qb^2)*(Beta_bb^2) + 12*pb*qb*(Beta_Bb^2)
+
+mean_tet = AAAA*(pa^4) + aaaa*(qa^4) + AAAa*(4*(pa^3)*(qa)) + Aaaa*(4*(qa^3)*(pa)) + AAaa*(6*(pa^2)*(qa^2)) + BBBB*(pb^4) + bbbb*(qb^4) + BBBb*(4*(pb^3)*(qb)) + Bbbb*(4*(qb^3)*(pb)) + BBbb*(6*(pb^2)*(qb^2)) + mean_epi_tetra
+
+evo_tetra_epim[k] = (Var_add_tetra + (Var_dom_tetra/3))/(mean_tet^2)
+evo_tetra_epim_add[k] = (Var_add_tetra)/(mean_tet^2)
+
+  #}
+}
+
+library(rgl) # lancer la librairie
+library(plot3D) # lancer la librairie
+
+###
+
+coll = c(NULL)
+
+for(i in 1:length(p_a)){
+  if(evo_tetra_epip[i]/evo_diplo_epip[i] >= 1){coll[i] = "green"}
+  #else if(evo_tetra_epim[i]/evo_tetra[i] < 0.5){coll[i] = 2}
+  else{coll[i] = "red"}
+}
+
+# Positive epi 99.9% mieux tetra, 99.3 diplo
+# neg epi 23.4% tetra, 1.7% en diplo
+
+plot3d( 
+  x=p_a, y=p_b, z=evo_tetra_epip/evo_diplo_epip, 
+  col = coll, xlab = "", ylab="", zlab="" 
+  )
+
+rgl.snapshot("rgl_2_R.gif")
+
+min(evo_tetra_epip/evo_tetra)
+max(evo_tetra_epim/evo_diplo_epim)
+
+min(evo_tetra_epim/evo_tetra)
+max(evo_tetra_epim/evo_tetra)
+
+min(evo_diplo_epip/evo_diplo)
+max(evo_diplo_epip/evo_diplo)
+
+min(evo_diplo_epim/evo_diplo)
+max(evo_diplo_epim/evo_diplo)
+
+#par(mfrow=c(1,2))
+
+scatter3D(p_a,p_b,evo_tetra_epim/evo_tetra, phi = 0, bty ="g", colvar = evo_tetra_epim/evo_tetra, pch=20, ticktype = "detailed")
+
+scatter3D(p_a,p_b,evo_tetra_epim/evo_tetra, bty = "g", pch = 20, 
+          col.var = coll, 
+          col = c("Blue", "red", "green"),
+          ticktype = "detailed",
+          colkey = list(at = c(2,4, 6), side = 1, 
+          addlines = TRUE, length = 0.5, width = 0.5,
+          labels = c("Plus", "Moins", "mieux")),phi=0 )
+
+scatter3D(p_a,p_b,evo_tetra_epim/evo_tetra_epim_add, phi = 21, bty ="g", colvar = evo_tetra_epim/evo_tetra)
+
+scatter3D(p_a,p_b,evo_tetra_epim/evo_diplo_epim, phi = 21, bty ="g", colvar = evo_tetra_epim/evo_diplo_epim)
+
+scatter3D(p_a,p_b,evo_tetra_epip/evo_diplo_epip, phi = 21, bty ="g", colvar = evo_tetra_epip/evo_diplo_epip)
+
+```
+
+## Dominance
+
+```{r, echo=F}
+
+# Simulation without epistasis
+
+AA_BB = 20
+AA_Bb = 20
+AA_bb = 16
+
+Aa_BB = 20
+Aa_Bb = 20
+Aa_bb = 16
+
+aa_BB = 16
+aa_Bb = 16
+aa_bb = 12
+
+mean_diplo = (AA_BB+AA_Bb+AA_bb+Aa_BB+Aa_Bb+Aa_bb+aa_BB+aa_Bb+aa_bb)/9
+
+AAAA_BBBB = 40
+AAAA_BBBb = 40
+AAAA_BBbb = 40
+AAAA_Bbbb = 40
+AAAA_bbbb = 32
+
+AAAa_BBBB = 40
+AAAa_BBBb = 40
+AAAa_BBbb = 40
+AAAa_Bbbb = 40
+AAAa_bbbb = 32
+
+AAaa_BBBB = 40
+AAaa_BBBb = 40
+AAaa_BBbb = 40
+AAaa_Bbbb = 40
+AAaa_bbbb = 32
+
+Aaaa_BBBB = 40
+Aaaa_BBBb = 40
+Aaaa_BBbb = 40
+Aaaa_Bbbb = 40
+Aaaa_bbbb = 32
+
+aaaa_BBBB = 32
+aaaa_BBBb = 32
+aaaa_BBbb = 32
+aaaa_Bbbb = 32
+aaaa_bbbb = 24
+
+mean_tetra = (AAAA_BBBB+AAAA_BBBb+AAAA_BBbb+AAAA_Bbbb+AAAA_bbbb+AAAa_BBBB+AAAa_BBBb+AAAa_BBbb+AAAa_Bbbb+AAAa_bbbb+AAaa_BBBB+AAaa_BBBb+AAaa_BBbb+AAaa_Bbbb+AAaa_bbbb+Aaaa_BBBB+Aaaa_BBBb+Aaaa_BBbb+Aaaa_Bbbb+Aaaa_bbbb+aaaa_BBBB+aaaa_BBBb+aaaa_BBbb+aaaa_Bbbb+aaaa_bbbb)/25
+
+## Geno ind loci
+
+AA=(AA_BB+AA_Bb+AA_bb)/3
+Aa=(Aa_BB+Aa_Bb+Aa_bb)/3
+aa=(aa_BB+aa_Bb+aa_bb)/3
+
+BB=(AA_BB+Aa_BB+aa_BB)/3
+Bb=(AA_Bb+Aa_Bb+aa_Bb)/3
+bb=(AA_bb+Aa_bb+aa_bb)/3
+
+AAAA=(AAAA_BBBB+AAAA_BBBb+AAAA_BBbb+AAAA_Bbbb+AAAA_bbbb)/5
+AAAa=(AAAa_BBBB+AAAa_BBBb+AAAa_BBbb+AAAa_Bbbb+AAAa_bbbb)/5
+AAaa=(AAaa_BBBB+AAaa_BBBb+AAaa_BBbb+AAaa_Bbbb+AAaa_bbbb)/5
+Aaaa=(Aaaa_BBBB+Aaaa_BBBb+Aaaa_BBbb+Aaaa_Bbbb+Aaaa_bbbb)/5
+aaaa=(aaaa_BBBB+aaaa_BBBb+aaaa_BBbb+aaaa_Bbbb+aaaa_bbbb)/5
+
+BBBB=(AAAA_BBBB+AAAa_BBBB+AAaa_BBBB+Aaaa_BBBB+aaaa_BBBB)/5
+BBBb=(AAAA_BBBb+AAAa_BBBb+AAaa_BBBb+Aaaa_BBBb+aaaa_BBBb)/5
+BBbb=(AAAA_BBbb+AAAa_BBbb+AAaa_BBbb+Aaaa_BBbb+aaaa_BBbb)/5
+Bbbb=(AAAA_Bbbb+AAAa_Bbbb+AAaa_Bbbb+Aaaa_Bbbb+aaaa_Bbbb)/5
+bbbb=(AAAA_bbbb+AAAa_bbbb+AAaa_bbbb+Aaaa_bbbb+aaaa_bbbb)/5
+
+## Non-epi
+
+nAA_BB=AA+BB-mean_diplo
+nAA_Bb=AA+Bb-mean_diplo
+nAA_bb=AA+bb-mean_diplo
+
+nAa_BB=Aa+BB-mean_diplo
+nAa_Bb=Aa+Bb-mean_diplo
+nAa_bb=Aa+bb-mean_diplo
+
+naa_BB=aa+BB-mean_diplo
+naa_Bb=aa+Bb-mean_diplo
+naa_bb=aa+bb-mean_diplo
+
+nAAAA_BBBB = AAAA+BBBB-mean_tetra
+nAAAA_BBBb = AAAA+BBBb-mean_tetra
+nAAAA_BBbb = AAAA+BBbb-mean_tetra
+nAAAA_Bbbb = AAAA+Bbbb-mean_tetra
+nAAAA_bbbb = AAAA+bbbb-mean_tetra
+
+nAAAa_BBBB = AAAa+BBBB-mean_tetra
+nAAAa_BBBb = AAAa+BBBb-mean_tetra
+nAAAa_BBbb = AAAa+BBbb-mean_tetra
+nAAAa_Bbbb = AAAa+Bbbb-mean_tetra
+nAAAa_bbbb = AAAa+bbbb-mean_tetra
+
+nAAaa_BBBB = AAaa+BBBB-mean_tetra
+nAAaa_BBBb = AAaa+BBBb-mean_tetra
+nAAaa_BBbb = AAaa+BBbb-mean_tetra
+nAAaa_Bbbb = AAaa+Bbbb-mean_tetra
+nAAaa_bbbb = AAaa+bbbb-mean_tetra
+
+nAaaa_BBBB = Aaaa+BBBB-mean_tetra
+nAaaa_BBBb = Aaaa+BBBb-mean_tetra
+nAaaa_BBbb = Aaaa+BBbb-mean_tetra
+nAaaa_Bbbb = Aaaa+Bbbb-mean_tetra
+nAaaa_bbbb = Aaaa+bbbb-mean_tetra
+
+naaaa_BBBB = aaaa+BBBB-mean_tetra
+naaaa_BBBb = aaaa+BBBb-mean_tetra
+naaaa_BBbb = aaaa+BBbb-mean_tetra
+naaaa_Bbbb = aaaa+Bbbb-mean_tetra
+naaaa_bbbb = aaaa+bbbb-mean_tetra
+
+## epi 
+
+eAA_BB = AA_BB - nAA_BB
+eAA_Bb = AA_Bb - nAA_Bb
+eAA_bb = AA_bb - nAA_bb
+
+eAa_BB = Aa_BB - nAa_BB
+eAa_Bb = Aa_Bb - nAa_Bb
+eAa_bb = Aa_bb - nAa_bb
+
+eaa_BB = aa_BB - naa_BB
+eaa_Bb = aa_Bb - naa_Bb
+eaa_bb = aa_bb - naa_bb
+
+eAAAA_BBBB = AAAA_BBBB - nAAAA_BBBB
+eAAAA_BBBb = AAAA_BBBb - nAAAA_BBBb
+eAAAA_BBbb = AAAA_BBbb - nAAAA_BBbb
+eAAAA_Bbbb = AAAA_Bbbb - nAAAA_Bbbb
+eAAAA_bbbb = AAAA_bbbb - nAAAA_bbbb
+
+eAAAa_BBBB = AAAa_BBBB - nAAAa_BBBB
+eAAAa_BBBb = AAAa_BBBb - nAAAa_BBBb
+eAAAa_BBbb = AAAa_BBbb - nAAAa_BBbb
+eAAAa_Bbbb = AAAa_Bbbb - nAAAa_Bbbb
+eAAAa_bbbb = AAAa_bbbb - nAAAa_bbbb
+
+eAAaa_BBBB = AAaa_BBBB - nAAaa_BBBB
+eAAaa_BBBb = AAaa_BBBb - nAAaa_BBBb
+eAAaa_BBbb = AAaa_BBbb - nAAaa_BBbb
+eAAaa_Bbbb = AAaa_Bbbb - nAAaa_Bbbb
+eAAaa_bbbb = AAaa_bbbb - nAAaa_bbbb
+
+eAaaa_BBBB = Aaaa_BBBB - nAaaa_BBBB
+eAaaa_BBBb = Aaaa_BBBb - nAaaa_BBBb
+eAaaa_BBbb = Aaaa_BBbb - nAaaa_BBbb
+eAaaa_Bbbb = Aaaa_Bbbb - nAaaa_Bbbb
+eAaaa_bbbb = Aaaa_bbbb - nAaaa_bbbb
+
+eaaaa_BBBB = aaaa_BBBB - naaaa_BBBB
+eaaaa_BBBb = aaaa_BBBb - naaaa_BBBb
+eaaaa_BBbb = aaaa_BBbb - naaaa_BBbb
+eaaaa_Bbbb = aaaa_Bbbb - naaaa_Bbbb
+eaaaa_bbbb = aaaa_bbbb - naaaa_bbbb
+
+p = seq(0.01, 0.99, by=0.01)
+
+evo_domdiplo = c(NULL)
+evo_domtetra = c(NULL)
+
+p_a = c(NULL)
+p_b = c(NULL)
+
+k=0
+
+for(i in 1:length(p)){
+  #for(j in 1:length(p)){
+
+#### Initialization of frequencies
+
+k = k + 1
+        
+p_a[k] =  p[i]   
+#p_b[k] =  p[j]   
+
+pa = p[i]    
+qa = 1 - pa
+
+pb = 0.25 #p[j]
+qb = 1 - pb
+
+#### Conditional values
+
+ceAA = (pb^2)*eAA_BB + (qb^2)*eAA_bb +2*pb*qb*eAA_Bb
+ceAa = (pb^2)*eAa_BB + (qb^2)*eAa_bb +2*pb*qb*eAa_Bb
+ceaa = (pb^2)*eaa_BB + (qb^2)*eaa_bb +2*pb*qb*eaa_Bb
+
+ceBB = (pa^2)*eAA_BB + (qa^2)*eaa_BB +2*pa*qa*eAa_BB
+ceBb = (pa^2)*eAA_Bb + (qa^2)*eaa_Bb +2*pa*qa*eAa_Bb
+cebb = (pa^2)*eAA_bb + (qa^2)*eaa_bb +2*pa*qa*eAa_bb
+
+ceAAAA = (pb^4)*eAAAA_BBBB + (qb^4)*eAAAA_bbbb + 4*pb*(qb^3)*eAAAA_Bbbb + 4*qb*(pb^3)*eAAAA_BBBb + 6*(pb^2)*(qb^2)*eAAAA_BBbb
+ceAAAa = (pb^4)*eAAAa_BBBB + (qb^4)*eAAAa_bbbb + 4*pb*(qb^3)*eAAAa_Bbbb + 4*qb*(pb^3)*eAAAa_BBBb + 6*(pb^2)*(qb^2)*eAAAa_BBbb
+ceAAaa = (pb^4)*eAAaa_BBBB + (qb^4)*eAAaa_bbbb + 4*pb*(qb^3)*eAAaa_Bbbb + 4*qb*(pb^3)*eAAaa_BBBb + 6*(pb^2)*(qb^2)*eAAaa_BBbb
+ceAaaa = (pb^4)*eAaaa_BBBB + (qb^4)*eAaaa_bbbb + 4*pb*(qb^3)*eAaaa_Bbbb + 4*qb*(pb^3)*eAaaa_BBBb + 6*(pb^2)*(qb^2)*eAaaa_BBbb
+ceaaaa = (pb^4)*eaaaa_BBBB + (qb^4)*eaaaa_bbbb + 4*pb*(qb^3)*eaaaa_Bbbb + 4*qb*(pb^3)*eaaaa_BBBb + 6*(pb^2)*(qb^2)*eaaaa_BBbb
+
+ceBBBB = (pa^4)*eAAAA_BBBB + (qa^4)*eaaaa_BBBB + 4*pa*(qa^3)*eAaaa_BBBB + 4*qa*(pa^3)*eAAAa_BBBB + 6*(pa^2)*(qa^2)*eAAaa_BBBB
+ceBBBb = (pa^4)*eAAAA_BBBb + (qa^4)*eaaaa_BBBb + 4*pa*(qa^3)*eAaaa_BBBb + 4*qa*(pa^3)*eAAAa_BBBb + 6*(pa^2)*(qa^2)*eAAaa_BBBb
+ceBBbb = (pa^4)*eAAAA_BBbb + (qa^4)*eaaaa_BBbb + 4*pa*(qa^3)*eAaaa_BBbb + 4*qa*(pa^3)*eAAAa_BBbb + 6*(pa^2)*(qa^2)*eAAaa_BBbb
+ceBbbb = (pa^4)*eAAAA_Bbbb + (qa^4)*eaaaa_Bbbb + 4*pa*(qa^3)*eAaaa_Bbbb + 4*qa*(pa^3)*eAAAa_Bbbb + 6*(pa^2)*(qa^2)*eAAaa_Bbbb
+cebbbb = (pa^4)*eAAAA_bbbb + (qa^4)*eaaaa_bbbb + 4*pa*(qa^3)*eAaaa_bbbb + 4*qa*(pa^3)*eAAAa_bbbb + 6*(pa^2)*(qa^2)*eAAaa_bbbb
+
+CAA = AA + ceAA
+CAa = Aa + ceAa
+Caa = aa + ceaa
+
+CBB = BB + ceBB
+CBb = Bb + ceBb
+Cbb = bb + cebb
+
+cAAAA = AAAA + ceAAAA
+cAAAa = AAAa + ceAAAa
+cAAaa = AAaa + ceAAaa
+cAaaa = Aaaa + ceAaaa
+caaaa = aaaa + ceaaaa
+
+cBBBB = BBBB + ceBBBB
+cBBBb = BBBb + ceBBBb
+cBBbb = BBbb + ceBBbb
+cBbbb = Bbbb + ceBbbb
+cbbbb = bbbb + cebbbb
+
+z_diplo_a = CAA*(pa^2) + CAa*(2*pa*qa) + Caa*(qa^2) 
+z_diplo_b = CBB*(pb^2) + CBb*(2*pb*qb) + Cbb*(qb^2)
+
+z_tetra_a = cAAAA*(pa^4) + cAAAa*4*(pa^3)*qa + cAaaa*4*(qa^3)*pa + cAAaa*6*(pa^2)*(qa^2) + caaaa*(qa^4)
+z_tetra_b = cBBBB*(pb^4) + cBBBb*4*(pb^3)*qb + cBbbb*4*(qb^3)*pb + cBBbb*6*(pb^2)*(qb^2) + cbbbb*(qb^4)
+
+mean_epi_diplo = (pa^2)*(pb^2)*eAA_BB + (pa^2)*(qb^2)*eAA_bb + (pa^2)*(2*pb*qb)*eAA_Bb +(qa^2)*(pb^2)*eaa_BB + (qa^2)*(qb^2)*eaa_bb + (qa^2)*(2*pb*qb)*eaa_Bb + (2*pa*qa)*(pb^2)*eAa_BB + (2*pa*qa)*(qb^2)*eAa_bb + (2*pa*qa)*(2*pb*qb)*eAa_Bb
+
+mean_epi_tetra = (pa^4)*(pb^4)*eAAAA_BBBB + (pa^4)*(qb^4)*eAAAA_bbbb + (pa^4)*(4*(pb^3)*qb)*eAAAA_BBBb + (pa^4)*(4*(qb^3)*pb)*eAAAA_Bbbb + (pa^4)*(6*(pb^2)*(qb^2))*eAAAA_BBbb + (qa^4)*(pb^4)*eaaaa_BBBB + (qa^4)*(qb^4)*eaaaa_bbbb + (qa^4)*(4*(pb^3)*qb)*eaaaa_BBBb + (qa^4)*(4*(qb^3)*pb)*eaaaa_Bbbb + (qa^4)*(6*(pb^2)*(qb^2))*eaaaa_BBbb + (4*(pa^3)*qa)*(pb^4)*eAAAa_BBBB + (4*(pa^3)*qa)*(qb^4)*eAAAa_bbbb + (4*(pa^3)*qa)*(4*(pb^3)*qb)*eAAAa_BBBb + (4*(pa^3)*qa)*(4*(qb^3)*pb)*eAAAa_Bbbb + (4*(pa^3)*qa)*(6*(pb^2)*(qb^2))*eAAAa_BBbb + (4*(qa^3)*pa)*(pb^4)*eAaaa_BBBB + (4*(qa^3)*pa)*(qb^4)*eAaaa_bbbb + (4*(qa^3)*pa)*(4*(pb^3)*qb)*eAaaa_BBBb + (4*(qa^3)*pa)*(4*(qb^3)*pb)*eAaaa_Bbbb + (4*(qa^3)*pa)*(6*(pb^2)*(qb^2))*eAaaa_BBbb + (6*(pa^2)*(qa^2))*(pb^4)*eAAaa_BBBB + (6*(pa^2)*(qa^2))*(qb^4)*eAAaa_bbbb + (6*(pa^2)*(qa^2))*(4*(pb^3)*qb)*eAAaa_BBBb + (6*(pa^2)*(qa^2))*(4*(qb^3)*pb)*eAAaa_Bbbb + (6*(pa^2)*(qa^2))*(6*(pb^2)*(qb^2))*eAAaa_BBbb
+
+###############################
+
+alpha_A_dip = pa*CAA + qa*CAa - z_diplo_a
+alpha_a_dip = pa*CAa + qa*Caa - z_diplo_a
+
+alpha_B_dip = pb*CBB + qb*CBb - z_diplo_b
+alpha_b_dip = pb*CBb + qb*Cbb - z_diplo_b
+
+alpha_A_tet = (pa^3)*cAAAA + (qa^3)*cAaaa + (3*(pa^2)*(qa))*cAAAa + (3*(pa)*(qa^2))*cAAaa - z_tetra_a
+alpha_a_tet = (pa^3)*cAAAa + (qa^3)*caaaa + (3*(pa^2)*(qa))*cAAaa + (3*(pa)*(qa^2))*cAaaa - z_tetra_a
+
+alpha_B_tet = (pb^3)*cBBBB + (qb^3)*cBbbb + (3*(pb^2)*(qb))*cBBBb + (3*(pb)*(qb^2))*cBBbb - z_tetra_b
+alpha_b_tet = (pb^3)*cBBBb + (qb^3)*cbbbb + (3*(pb^2)*(qb))*cBBbb + (3*(pb)*(qb^2))*cBbbb - z_tetra_b
+
+Beta_AA = (pa^2)*cAAAA + (qa^2)*cAAaa + 2*pa*qa*cAAAa - 2*alpha_A_tet - z_tetra_a 
+Beta_Aa = (pa^2)*cAAAa + (qa^2)*cAaaa + 2*pa*qa*cAAaa - alpha_A_tet - alpha_a_tet - z_tetra_a
+Beta_aa = (pa^2)*cAAaa + (qa^2)*caaaa + 2*pa*qa*cAaaa - 2*alpha_a_tet - z_tetra_a
+
+Beta_BB = (pb^2)*cBBBB + (qb^2)*cBBbb + 2*pb*qb*cBBBb - 2*alpha_B_tet - z_tetra_b
+Beta_Bb = (pb^2)*cBBBb + (qb^2)*cBbbb + 2*pb*qb*cBBbb - alpha_B_tet - alpha_b_tet - z_tetra_b
+Beta_bb = (pb^2)*cBBbb + (qb^2)*cbbbb + 2*pb*qb*cBbbb - 2*alpha_b_tet - z_tetra_b
+  
+Var_add_dip = 2*pa*(alpha_A_dip^2) + 2*qa*(alpha_a_dip^2) + 2*pb*(alpha_B_dip^2) + 2*qb*(alpha_b_dip^2)
+
+mean_dip = AA*(pa^2) + Aa*(2*pa*qa) + aa*(qa^2) + BB*(pb^2) + Bb*(2*pb*qb) + bb*(qb^2) + mean_epi_diplo
+
+evo_domdiplo[k] = Var_add_dip/(mean_dip^2)
+
+Var_add_tetra = 4*pa*(alpha_A_tet^2) + 4*qa*(alpha_a_tet^2) + 4*pb*(alpha_B_tet^2) + 4*qb*(alpha_b_tet^2)
+
+Var_dom_tetra = 6*(pa^2)*(Beta_AA^2) + 6*(qa^2)*(Beta_aa^2) + 12*pa*qa*(Beta_Aa^2) + 6*(pb^2)*(Beta_BB^2) + 6*(qb^2)*(Beta_bb^2) + 12*pb*qb*(Beta_Bb^2)
+
+mean_tet = AAAA*(pa^4) + aaaa*(qa^4) + AAAa*(4*(pa^3)*(qa)) + Aaaa*(4*(qa^3)*(pa)) + AAaa*(6*(pa^2)*(qa^2)) + BBBB*(pb^4) + bbbb*(qb^4) + BBBb*(4*(pb^3)*(qb)) + Bbbb*(4*(qb^3)*(pb)) + BBbb*(6*(pb^2)*(qb^2)) + mean_epi_tetra
+
+evo_domtetra[k] = (Var_add_tetra + (Var_dom_tetra/3))/(mean_tet^2)
+
+  #}
+}
+
+###########################################################
+
+# With epistasis +
+
+AA_BB = 24
+AA_Bb = 23
+AA_bb = 16
+
+Aa_BB = 23
+Aa_Bb = 22
+Aa_bb = 16
+
+aa_BB = 16
+aa_Bb = 16
+aa_bb = 12
+
+mean_diplo = (AA_BB+AA_Bb+AA_bb+Aa_BB+Aa_Bb+Aa_bb+aa_BB+aa_Bb+aa_bb)/9
+
+AAAA_BBBB = 56
+AAAA_BBBb = 54
+AAAA_BBbb = 52
+AAAA_Bbbb = 50
+AAAA_bbbb = 32
+
+AAAa_BBBB = 54
+AAAa_BBBb = 52
+AAAa_BBbb = 50
+AAAa_Bbbb = 48
+AAAa_bbbb = 32
+
+AAaa_BBBB = 52
+AAaa_BBBb = 50
+AAaa_BBbb = 48
+AAaa_Bbbb = 46
+AAaa_bbbb = 32
+
+Aaaa_BBBB = 50
+Aaaa_BBBb = 48
+Aaaa_BBbb = 46
+Aaaa_Bbbb = 44
+Aaaa_bbbb = 32
+
+aaaa_BBBB = 32
+aaaa_BBBb = 32
+aaaa_BBbb = 32
+aaaa_Bbbb = 32
+aaaa_bbbb = 24
+
+mean_tetra = (AAAA_BBBB+AAAA_BBBb+AAAA_BBbb+AAAA_Bbbb+AAAA_bbbb+AAAa_BBBB+AAAa_BBBb+AAAa_BBbb+AAAa_Bbbb+AAAa_bbbb+AAaa_BBBB+AAaa_BBBb+AAaa_BBbb+AAaa_Bbbb+AAaa_bbbb+Aaaa_BBBB+Aaaa_BBBb+Aaaa_BBbb+Aaaa_Bbbb+Aaaa_bbbb+aaaa_BBBB+aaaa_BBBb+aaaa_BBbb+aaaa_Bbbb+aaaa_bbbb)/25
+
+## Geno ind loci
+
+AA=(AA_BB+AA_Bb+AA_bb)/3
+Aa=(Aa_BB+Aa_Bb+Aa_bb)/3
+aa=(aa_BB+aa_Bb+aa_bb)/3
+
+BB=(AA_BB+Aa_BB+aa_BB)/3
+Bb=(AA_Bb+Aa_Bb+aa_Bb)/3
+bb=(AA_bb+Aa_bb+aa_bb)/3
+
+AAAA=(AAAA_BBBB+AAAA_BBBb+AAAA_BBbb+AAAA_Bbbb+AAAA_bbbb)/5
+AAAa=(AAAa_BBBB+AAAa_BBBb+AAAa_BBbb+AAAa_Bbbb+AAAa_bbbb)/5
+AAaa=(AAaa_BBBB+AAaa_BBBb+AAaa_BBbb+AAaa_Bbbb+AAaa_bbbb)/5
+Aaaa=(Aaaa_BBBB+Aaaa_BBBb+Aaaa_BBbb+Aaaa_Bbbb+Aaaa_bbbb)/5
+aaaa=(aaaa_BBBB+aaaa_BBBb+aaaa_BBbb+aaaa_Bbbb+aaaa_bbbb)/5
+
+BBBB=(AAAA_BBBB+AAAa_BBBB+AAaa_BBBB+Aaaa_BBBB+aaaa_BBBB)/5
+BBBb=(AAAA_BBBb+AAAa_BBBb+AAaa_BBBb+Aaaa_BBBb+aaaa_BBBb)/5
+BBbb=(AAAA_BBbb+AAAa_BBbb+AAaa_BBbb+Aaaa_BBbb+aaaa_BBbb)/5
+Bbbb=(AAAA_Bbbb+AAAa_Bbbb+AAaa_Bbbb+Aaaa_Bbbb+aaaa_Bbbb)/5
+bbbb=(AAAA_bbbb+AAAa_bbbb+AAaa_bbbb+Aaaa_bbbb+aaaa_bbbb)/5
+
+## Non-epi
+
+nAA_BB=AA+BB-mean_diplo
+nAA_Bb=AA+Bb-mean_diplo
+nAA_bb=AA+bb-mean_diplo
+
+nAa_BB=Aa+BB-mean_diplo
+nAa_Bb=Aa+Bb-mean_diplo
+nAa_bb=Aa+bb-mean_diplo
+
+naa_BB=aa+BB-mean_diplo
+naa_Bb=aa+Bb-mean_diplo
+naa_bb=aa+bb-mean_diplo
+
+nAAAA_BBBB = AAAA+BBBB-mean_tetra
+nAAAA_BBBb = AAAA+BBBb-mean_tetra
+nAAAA_BBbb = AAAA+BBbb-mean_tetra
+nAAAA_Bbbb = AAAA+Bbbb-mean_tetra
+nAAAA_bbbb = AAAA+bbbb-mean_tetra
+
+nAAAa_BBBB = AAAa+BBBB-mean_tetra
+nAAAa_BBBb = AAAa+BBBb-mean_tetra
+nAAAa_BBbb = AAAa+BBbb-mean_tetra
+nAAAa_Bbbb = AAAa+Bbbb-mean_tetra
+nAAAa_bbbb = AAAa+bbbb-mean_tetra
+
+nAAaa_BBBB = AAaa+BBBB-mean_tetra
+nAAaa_BBBb = AAaa+BBBb-mean_tetra
+nAAaa_BBbb = AAaa+BBbb-mean_tetra
+nAAaa_Bbbb = AAaa+Bbbb-mean_tetra
+nAAaa_bbbb = AAaa+bbbb-mean_tetra
+
+nAaaa_BBBB = Aaaa+BBBB-mean_tetra
+nAaaa_BBBb = Aaaa+BBBb-mean_tetra
+nAaaa_BBbb = Aaaa+BBbb-mean_tetra
+nAaaa_Bbbb = Aaaa+Bbbb-mean_tetra
+nAaaa_bbbb = Aaaa+bbbb-mean_tetra
+
+naaaa_BBBB = aaaa+BBBB-mean_tetra
+naaaa_BBBb = aaaa+BBBb-mean_tetra
+naaaa_BBbb = aaaa+BBbb-mean_tetra
+naaaa_Bbbb = aaaa+Bbbb-mean_tetra
+naaaa_bbbb = aaaa+bbbb-mean_tetra
+
+## epi 
+
+eAA_BB = AA_BB - nAA_BB
+eAA_Bb = AA_Bb - nAA_Bb
+eAA_bb = AA_bb - nAA_bb
+
+eAa_BB = Aa_BB - nAa_BB
+eAa_Bb = Aa_Bb - nAa_Bb
+eAa_bb = Aa_bb - nAa_bb
+
+eaa_BB = aa_BB - naa_BB
+eaa_Bb = aa_Bb - naa_Bb
+eaa_bb = aa_bb - naa_bb
+
+eAAAA_BBBB = AAAA_BBBB - nAAAA_BBBB
+eAAAA_BBBb = AAAA_BBBb - nAAAA_BBBb
+eAAAA_BBbb = AAAA_BBbb - nAAAA_BBbb
+eAAAA_Bbbb = AAAA_Bbbb - nAAAA_Bbbb
+eAAAA_bbbb = AAAA_bbbb - nAAAA_bbbb
+
+eAAAa_BBBB = AAAa_BBBB - nAAAa_BBBB
+eAAAa_BBBb = AAAa_BBBb - nAAAa_BBBb
+eAAAa_BBbb = AAAa_BBbb - nAAAa_BBbb
+eAAAa_Bbbb = AAAa_Bbbb - nAAAa_Bbbb
+eAAAa_bbbb = AAAa_bbbb - nAAAa_bbbb
+
+eAAaa_BBBB = AAaa_BBBB - nAAaa_BBBB
+eAAaa_BBBb = AAaa_BBBb - nAAaa_BBBb
+eAAaa_BBbb = AAaa_BBbb - nAAaa_BBbb
+eAAaa_Bbbb = AAaa_Bbbb - nAAaa_Bbbb
+eAAaa_bbbb = AAaa_bbbb - nAAaa_bbbb
+
+eAaaa_BBBB = Aaaa_BBBB - nAaaa_BBBB
+eAaaa_BBBb = Aaaa_BBBb - nAaaa_BBBb
+eAaaa_BBbb = Aaaa_BBbb - nAaaa_BBbb
+eAaaa_Bbbb = Aaaa_Bbbb - nAaaa_Bbbb
+eAaaa_bbbb = Aaaa_bbbb - nAaaa_bbbb
+
+eaaaa_BBBB = aaaa_BBBB - naaaa_BBBB
+eaaaa_BBBb = aaaa_BBBb - naaaa_BBBb
+eaaaa_BBbb = aaaa_BBbb - naaaa_BBbb
+eaaaa_Bbbb = aaaa_Bbbb - naaaa_Bbbb
+eaaaa_bbbb = aaaa_bbbb - naaaa_bbbb
+
+evo_domdiplo_epip = c(NULL)
+evo_domtetra_epip = c(NULL)
+
+k=0
+
+for(i in 1:length(p)){
+  for(j in 1:length(p)){
+
+#### Initialization of frequencies
+
+k = k + 1
+        
+p_a[k] =  p[i]   
+p_b[k] =  p[j]   
+
+pa = p[i]    
+qa = 1 - pa
+
+pb = p[j]
+qb = 1 - pb
+
+#### Conditional values
+
+ceAA = (pb^2)*eAA_BB + (qb^2)*eAA_bb +2*pb*qb*eAA_Bb
+ceAa = (pb^2)*eAa_BB + (qb^2)*eAa_bb +2*pb*qb*eAa_Bb
+ceaa = (pb^2)*eaa_BB + (qb^2)*eaa_bb +2*pb*qb*eaa_Bb
+
+ceBB = (pa^2)*eAA_BB + (qa^2)*eaa_BB +2*pa*qa*eAa_BB
+ceBb = (pa^2)*eAA_Bb + (qa^2)*eaa_Bb +2*pa*qa*eAa_Bb
+cebb = (pa^2)*eAA_bb + (qa^2)*eaa_bb +2*pa*qa*eAa_bb
+
+ceAAAA = (pb^4)*eAAAA_BBBB + (qb^4)*eAAAA_bbbb + 4*pb*(qb^3)*eAAAA_Bbbb + 4*qb*(pb^3)*eAAAA_BBBb + 6*(pb^2)*(qb^2)*eAAAA_BBbb
+ceAAAa = (pb^4)*eAAAa_BBBB + (qb^4)*eAAAa_bbbb + 4*pb*(qb^3)*eAAAa_Bbbb + 4*qb*(pb^3)*eAAAa_BBBb + 6*(pb^2)*(qb^2)*eAAAa_BBbb
+ceAAaa = (pb^4)*eAAaa_BBBB + (qb^4)*eAAaa_bbbb + 4*pb*(qb^3)*eAAaa_Bbbb + 4*qb*(pb^3)*eAAaa_BBBb + 6*(pb^2)*(qb^2)*eAAaa_BBbb
+ceAaaa = (pb^4)*eAaaa_BBBB + (qb^4)*eAaaa_bbbb + 4*pb*(qb^3)*eAaaa_Bbbb + 4*qb*(pb^3)*eAaaa_BBBb + 6*(pb^2)*(qb^2)*eAaaa_BBbb
+ceaaaa = (pb^4)*eaaaa_BBBB + (qb^4)*eaaaa_bbbb + 4*pb*(qb^3)*eaaaa_Bbbb + 4*qb*(pb^3)*eaaaa_BBBb + 6*(pb^2)*(qb^2)*eaaaa_BBbb
+
+ceBBBB = (pa^4)*eAAAA_BBBB + (qa^4)*eaaaa_BBBB + 4*pa*(qa^3)*eAaaa_BBBB + 4*qa*(pa^3)*eAAAa_BBBB + 6*(pa^2)*(qa^2)*eAAaa_BBBB
+ceBBBb = (pa^4)*eAAAA_BBBb + (qa^4)*eaaaa_BBBb + 4*pa*(qa^3)*eAaaa_BBBb + 4*qa*(pa^3)*eAAAa_BBBb + 6*(pa^2)*(qa^2)*eAAaa_BBBb
+ceBBbb = (pa^4)*eAAAA_BBbb + (qa^4)*eaaaa_BBbb + 4*pa*(qa^3)*eAaaa_BBbb + 4*qa*(pa^3)*eAAAa_BBbb + 6*(pa^2)*(qa^2)*eAAaa_BBbb
+ceBbbb = (pa^4)*eAAAA_Bbbb + (qa^4)*eaaaa_Bbbb + 4*pa*(qa^3)*eAaaa_Bbbb + 4*qa*(pa^3)*eAAAa_Bbbb + 6*(pa^2)*(qa^2)*eAAaa_Bbbb
+cebbbb = (pa^4)*eAAAA_bbbb + (qa^4)*eaaaa_bbbb + 4*pa*(qa^3)*eAaaa_bbbb + 4*qa*(pa^3)*eAAAa_bbbb + 6*(pa^2)*(qa^2)*eAAaa_bbbb
+
+CAA = AA + ceAA
+CAa = Aa + ceAa
+Caa = aa + ceaa
+
+CBB = BB + ceBB
+CBb = Bb + ceBb
+Cbb = bb + cebb
+
+cAAAA = AAAA + ceAAAA
+cAAAa = AAAa + ceAAAa
+cAAaa = AAaa + ceAAaa
+cAaaa = Aaaa + ceAaaa
+caaaa = aaaa + ceaaaa
+
+cBBBB = BBBB + ceBBBB
+cBBBb = BBBb + ceBBBb
+cBBbb = BBbb + ceBBbb
+cBbbb = Bbbb + ceBbbb
+cbbbb = bbbb + cebbbb
+
+z_diplo_a = CAA*(pa^2) + CAa*(2*pa*qa) + Caa*(qa^2) 
+z_diplo_b = CBB*(pb^2) + CBb*(2*pb*qb) + Cbb*(qb^2)
+
+z_tetra_a = cAAAA*(pa^4) + cAAAa*4*(pa^3)*qa + cAaaa*4*(qa^3)*pa + cAAaa*6*(pa^2)*(qa^2) + caaaa*(qa^4)
+z_tetra_b = cBBBB*(pb^4) + cBBBb*4*(pb^3)*qb + cBbbb*4*(qb^3)*pb + cBBbb*6*(pb^2)*(qb^2) + cbbbb*(qb^4)
+
+mean_epi_diplo = (pa^2)*(pb^2)*eAA_BB + (pa^2)*(qb^2)*eAA_bb + (pa^2)*(2*pb*qb)*eAA_Bb +(qa^2)*(pb^2)*eaa_BB + (qa^2)*(qb^2)*eaa_bb + (qa^2)*(2*pb*qb)*eaa_Bb + (2*pa*qa)*(pb^2)*eAa_BB + (2*pa*qa)*(qb^2)*eAa_bb + (2*pa*qa)*(2*pb*qb)*eAa_Bb
+
+mean_epi_tetra = (pa^4)*(pb^4)*eAAAA_BBBB + (pa^4)*(qb^4)*eAAAA_bbbb + (pa^4)*(4*(pb^3)*qb)*eAAAA_BBBb + (pa^4)*(4*(qb^3)*pb)*eAAAA_Bbbb + (pa^4)*(6*(pb^2)*(qb^2))*eAAAA_BBbb + (qa^4)*(pb^4)*eaaaa_BBBB + (qa^4)*(qb^4)*eaaaa_bbbb + (qa^4)*(4*(pb^3)*qb)*eaaaa_BBBb + (qa^4)*(4*(qb^3)*pb)*eaaaa_Bbbb + (qa^4)*(6*(pb^2)*(qb^2))*eaaaa_BBbb + (4*(pa^3)*qa)*(pb^4)*eAAAa_BBBB + (4*(pa^3)*qa)*(qb^4)*eAAAa_bbbb + (4*(pa^3)*qa)*(4*(pb^3)*qb)*eAAAa_BBBb + (4*(pa^3)*qa)*(4*(qb^3)*pb)*eAAAa_Bbbb + (4*(pa^3)*qa)*(6*(pb^2)*(qb^2))*eAAAa_BBbb + (4*(qa^3)*pa)*(pb^4)*eAaaa_BBBB + (4*(qa^3)*pa)*(qb^4)*eAaaa_bbbb + (4*(qa^3)*pa)*(4*(pb^3)*qb)*eAaaa_BBBb + (4*(qa^3)*pa)*(4*(qb^3)*pb)*eAaaa_Bbbb + (4*(qa^3)*pa)*(6*(pb^2)*(qb^2))*eAaaa_BBbb + (6*(pa^2)*(qa^2))*(pb^4)*eAAaa_BBBB + (6*(pa^2)*(qa^2))*(qb^4)*eAAaa_bbbb + (6*(pa^2)*(qa^2))*(4*(pb^3)*qb)*eAAaa_BBBb + (6*(pa^2)*(qa^2))*(4*(qb^3)*pb)*eAAaa_Bbbb + (6*(pa^2)*(qa^2))*(6*(pb^2)*(qb^2))*eAAaa_BBbb
+
+###############################
+
+alpha_A_dip = pa*CAA + qa*CAa - z_diplo_a
+alpha_a_dip = pa*CAa + qa*Caa - z_diplo_a
+
+alpha_B_dip = pb*CBB + qb*CBb - z_diplo_b
+alpha_b_dip = pb*CBb + qb*Cbb - z_diplo_b
+
+alpha_A_tet = (pa^3)*cAAAA + (qa^3)*cAaaa + (3*(pa^2)*(qa))*cAAAa + (3*(pa)*(qa^2))*cAAaa - z_tetra_a
+alpha_a_tet = (pa^3)*cAAAa + (qa^3)*caaaa + (3*(pa^2)*(qa))*cAAaa + (3*(pa)*(qa^2))*cAaaa - z_tetra_a
+
+alpha_B_tet = (pb^3)*cBBBB + (qb^3)*cBbbb + (3*(pb^2)*(qb))*cBBBb + (3*(pb)*(qb^2))*cBBbb - z_tetra_b
+alpha_b_tet = (pb^3)*cBBBb + (qb^3)*cbbbb + (3*(pb^2)*(qb))*cBBbb + (3*(pb)*(qb^2))*cBbbb - z_tetra_b
+
+Beta_AA = (pa^2)*cAAAA + (qa^2)*cAAaa + 2*pa*qa*cAAAa - 2*alpha_A_tet - z_tetra_a 
+Beta_Aa = (pa^2)*cAAAa + (qa^2)*cAaaa + 2*pa*qa*cAAaa - alpha_A_tet - alpha_a_tet - z_tetra_a
+Beta_aa = (pa^2)*cAAaa + (qa^2)*caaaa + 2*pa*qa*cAaaa - 2*alpha_a_tet - z_tetra_a
+
+Beta_BB = (pb^2)*cBBBB + (qb^2)*cBBbb + 2*pb*qb*cBBBb - 2*alpha_B_tet - z_tetra_b
+Beta_Bb = (pb^2)*cBBBb + (qb^2)*cBbbb + 2*pb*qb*cBBbb - alpha_B_tet - alpha_b_tet - z_tetra_b
+Beta_bb = (pb^2)*cBBbb + (qb^2)*cbbbb + 2*pb*qb*cBbbb - 2*alpha_b_tet - z_tetra_b
+  
+Var_add_dip = 2*pa*(alpha_A_dip^2) + 2*qa*(alpha_a_dip^2) + 2*pb*(alpha_B_dip^2) + 2*qb*(alpha_b_dip^2)
+
+mean_dip = AA*(pa^2) + Aa*(2*pa*qa) + aa*(qa^2) + BB*(pb^2) + Bb*(2*pb*qb) + bb*(qb^2) + mean_epi_diplo
+
+evo_domdiplo_epip[k] = Var_add_dip/(mean_dip^2)
+
+Var_add_tetra = 4*pa*(alpha_A_tet^2) + 4*qa*(alpha_a_tet^2) + 4*pb*(alpha_B_tet^2) + 4*qb*(alpha_b_tet^2)
+
+Var_dom_tetra = 6*(pa^2)*(Beta_AA^2) + 6*(qa^2)*(Beta_aa^2) + 12*pa*qa*(Beta_Aa^2) + 6*(pb^2)*(Beta_BB^2) + 6*(qb^2)*(Beta_bb^2) + 12*pb*qb*(Beta_Bb^2)
+
+mean_tet = AAAA*(pa^4) + aaaa*(qa^4) + AAAa*(4*(pa^3)*(qa)) + Aaaa*(4*(qa^3)*(pa)) + AAaa*(6*(pa^2)*(qa^2)) + BBBB*(pb^4) + bbbb*(qb^4) + BBBb*(4*(pb^3)*(qb)) + Bbbb*(4*(qb^3)*(pb)) + BBbb*(6*(pb^2)*(qb^2)) + mean_epi_tetra
+
+evo_domtetra_epip[k] = (Var_add_tetra + (Var_dom_tetra/3))/(mean_tet^2)
+
+  }
+}
+
+###########################################################
+
+# With epistasis -
+
+AA_BB = 16
+AA_Bb = 17
+AA_bb = 16
+
+Aa_BB = 17
+Aa_Bb = 18
+Aa_bb = 16
+
+aa_BB = 16
+aa_Bb = 16
+aa_bb = 12
+
+mean_diplo = (AA_BB+AA_Bb+AA_bb+Aa_BB+Aa_Bb+Aa_bb+aa_BB+aa_Bb+aa_bb)/9
+
+AAAA_BBBB = 24
+AAAA_BBBb = 26
+AAAA_BBbb = 28
+AAAA_Bbbb = 30
+AAAA_bbbb = 32
+
+AAAa_BBBB = 26
+AAAa_BBBb = 28
+AAAa_BBbb = 30
+AAAa_Bbbb = 32
+AAAa_bbbb = 32
+
+AAaa_BBBB = 28
+AAaa_BBBb = 30
+AAaa_BBbb = 32
+AAaa_Bbbb = 34
+AAaa_bbbb = 32
+
+Aaaa_BBBB = 30
+Aaaa_BBBb = 32
+Aaaa_BBbb = 34
+Aaaa_Bbbb = 36
+Aaaa_bbbb = 32
+
+aaaa_BBBB = 32
+aaaa_BBBb = 32
+aaaa_BBbb = 32
+aaaa_Bbbb = 32
+aaaa_bbbb = 24
+
+mean_tetra = (AAAA_BBBB+AAAA_BBBb+AAAA_BBbb+AAAA_Bbbb+AAAA_bbbb+AAAa_BBBB+AAAa_BBBb+AAAa_BBbb+AAAa_Bbbb+AAAa_bbbb+AAaa_BBBB+AAaa_BBBb+AAaa_BBbb+AAaa_Bbbb+AAaa_bbbb+Aaaa_BBBB+Aaaa_BBBb+Aaaa_BBbb+Aaaa_Bbbb+Aaaa_bbbb+aaaa_BBBB+aaaa_BBBb+aaaa_BBbb+aaaa_Bbbb+aaaa_bbbb)/25
+
+## Geno ind loci
+
+AA=(AA_BB+AA_Bb+AA_bb)/3
+Aa=(Aa_BB+Aa_Bb+Aa_bb)/3
+aa=(aa_BB+aa_Bb+aa_bb)/3
+
+BB=(AA_BB+Aa_BB+aa_BB)/3
+Bb=(AA_Bb+Aa_Bb+aa_Bb)/3
+bb=(AA_bb+Aa_bb+aa_bb)/3
+
+AAAA=(AAAA_BBBB+AAAA_BBBb+AAAA_BBbb+AAAA_Bbbb+AAAA_bbbb)/5
+AAAa=(AAAa_BBBB+AAAa_BBBb+AAAa_BBbb+AAAa_Bbbb+AAAa_bbbb)/5
+AAaa=(AAaa_BBBB+AAaa_BBBb+AAaa_BBbb+AAaa_Bbbb+AAaa_bbbb)/5
+Aaaa=(Aaaa_BBBB+Aaaa_BBBb+Aaaa_BBbb+Aaaa_Bbbb+Aaaa_bbbb)/5
+aaaa=(aaaa_BBBB+aaaa_BBBb+aaaa_BBbb+aaaa_Bbbb+aaaa_bbbb)/5
+
+BBBB=(AAAA_BBBB+AAAa_BBBB+AAaa_BBBB+Aaaa_BBBB+aaaa_BBBB)/5
+BBBb=(AAAA_BBBb+AAAa_BBBb+AAaa_BBBb+Aaaa_BBBb+aaaa_BBBb)/5
+BBbb=(AAAA_BBbb+AAAa_BBbb+AAaa_BBbb+Aaaa_BBbb+aaaa_BBbb)/5
+Bbbb=(AAAA_Bbbb+AAAa_Bbbb+AAaa_Bbbb+Aaaa_Bbbb+aaaa_Bbbb)/5
+bbbb=(AAAA_bbbb+AAAa_bbbb+AAaa_bbbb+Aaaa_bbbb+aaaa_bbbb)/5
+
+## Non-epi
+
+nAA_BB=AA+BB-mean_diplo
+nAA_Bb=AA+Bb-mean_diplo
+nAA_bb=AA+bb-mean_diplo
+
+nAa_BB=Aa+BB-mean_diplo
+nAa_Bb=Aa+Bb-mean_diplo
+nAa_bb=Aa+bb-mean_diplo
+
+naa_BB=aa+BB-mean_diplo
+naa_Bb=aa+Bb-mean_diplo
+naa_bb=aa+bb-mean_diplo
+
+nAAAA_BBBB = AAAA+BBBB-mean_tetra
+nAAAA_BBBb = AAAA+BBBb-mean_tetra
+nAAAA_BBbb = AAAA+BBbb-mean_tetra
+nAAAA_Bbbb = AAAA+Bbbb-mean_tetra
+nAAAA_bbbb = AAAA+bbbb-mean_tetra
+
+nAAAa_BBBB = AAAa+BBBB-mean_tetra
+nAAAa_BBBb = AAAa+BBBb-mean_tetra
+nAAAa_BBbb = AAAa+BBbb-mean_tetra
+nAAAa_Bbbb = AAAa+Bbbb-mean_tetra
+nAAAa_bbbb = AAAa+bbbb-mean_tetra
+
+nAAaa_BBBB = AAaa+BBBB-mean_tetra
+nAAaa_BBBb = AAaa+BBBb-mean_tetra
+nAAaa_BBbb = AAaa+BBbb-mean_tetra
+nAAaa_Bbbb = AAaa+Bbbb-mean_tetra
+nAAaa_bbbb = AAaa+bbbb-mean_tetra
+
+nAaaa_BBBB = Aaaa+BBBB-mean_tetra
+nAaaa_BBBb = Aaaa+BBBb-mean_tetra
+nAaaa_BBbb = Aaaa+BBbb-mean_tetra
+nAaaa_Bbbb = Aaaa+Bbbb-mean_tetra
+nAaaa_bbbb = Aaaa+bbbb-mean_tetra
+
+naaaa_BBBB = aaaa+BBBB-mean_tetra
+naaaa_BBBb = aaaa+BBBb-mean_tetra
+naaaa_BBbb = aaaa+BBbb-mean_tetra
+naaaa_Bbbb = aaaa+Bbbb-mean_tetra
+naaaa_bbbb = aaaa+bbbb-mean_tetra
+
+## epi 
+
+eAA_BB = AA_BB - nAA_BB
+eAA_Bb = AA_Bb - nAA_Bb
+eAA_bb = AA_bb - nAA_bb
+
+eAa_BB = Aa_BB - nAa_BB
+eAa_Bb = Aa_Bb - nAa_Bb
+eAa_bb = Aa_bb - nAa_bb
+
+eaa_BB = aa_BB - naa_BB
+eaa_Bb = aa_Bb - naa_Bb
+eaa_bb = aa_bb - naa_bb
+
+eAAAA_BBBB = AAAA_BBBB - nAAAA_BBBB
+eAAAA_BBBb = AAAA_BBBb - nAAAA_BBBb
+eAAAA_BBbb = AAAA_BBbb - nAAAA_BBbb
+eAAAA_Bbbb = AAAA_Bbbb - nAAAA_Bbbb
+eAAAA_bbbb = AAAA_bbbb - nAAAA_bbbb
+
+eAAAa_BBBB = AAAa_BBBB - nAAAa_BBBB
+eAAAa_BBBb = AAAa_BBBb - nAAAa_BBBb
+eAAAa_BBbb = AAAa_BBbb - nAAAa_BBbb
+eAAAa_Bbbb = AAAa_Bbbb - nAAAa_Bbbb
+eAAAa_bbbb = AAAa_bbbb - nAAAa_bbbb
+
+eAAaa_BBBB = AAaa_BBBB - nAAaa_BBBB
+eAAaa_BBBb = AAaa_BBBb - nAAaa_BBBb
+eAAaa_BBbb = AAaa_BBbb - nAAaa_BBbb
+eAAaa_Bbbb = AAaa_Bbbb - nAAaa_Bbbb
+eAAaa_bbbb = AAaa_bbbb - nAAaa_bbbb
+
+eAaaa_BBBB = Aaaa_BBBB - nAaaa_BBBB
+eAaaa_BBBb = Aaaa_BBBb - nAaaa_BBBb
+eAaaa_BBbb = Aaaa_BBbb - nAaaa_BBbb
+eAaaa_Bbbb = Aaaa_Bbbb - nAaaa_Bbbb
+eAaaa_bbbb = Aaaa_bbbb - nAaaa_bbbb
+
+eaaaa_BBBB = aaaa_BBBB - naaaa_BBBB
+eaaaa_BBBb = aaaa_BBBb - naaaa_BBBb
+eaaaa_BBbb = aaaa_BBbb - naaaa_BBbb
+eaaaa_Bbbb = aaaa_Bbbb - naaaa_Bbbb
+eaaaa_bbbb = aaaa_bbbb - naaaa_bbbb
+
+evo_domdiplo_epim = c(NULL)
+evo_domtetra_epim = c(NULL)
+evo_domtetra_add_epim = c(NULL)
+
+k=0
+
+for(i in 1:length(p)){
+  #for(j in 1:length(p)){
+
+#### Initialization of frequencies
+
+k = k + 1
+
+p_a[k] =  p[i]   
+#p_b[k] =  p[j]   
+
+pa = p[i]    
+qa = 1 - pa
+
+pb = 0.25 #p[j]
+qb = 1 - pb
+
+#### Conditional values
+
+ceAA = (pb^2)*eAA_BB + (qb^2)*eAA_bb +2*pb*qb*eAA_Bb
+ceAa = (pb^2)*eAa_BB + (qb^2)*eAa_bb +2*pb*qb*eAa_Bb
+ceaa = (pb^2)*eaa_BB + (qb^2)*eaa_bb +2*pb*qb*eaa_Bb
+
+ceBB = (pa^2)*eAA_BB + (qa^2)*eaa_BB +2*pa*qa*eAa_BB
+ceBb = (pa^2)*eAA_Bb + (qa^2)*eaa_Bb +2*pa*qa*eAa_Bb
+cebb = (pa^2)*eAA_bb + (qa^2)*eaa_bb +2*pa*qa*eAa_bb
+
+ceAAAA = (pb^4)*eAAAA_BBBB + (qb^4)*eAAAA_bbbb + 4*pb*(qb^3)*eAAAA_Bbbb + 4*qb*(pb^3)*eAAAA_BBBb + 6*(pb^2)*(qb^2)*eAAAA_BBbb
+ceAAAa = (pb^4)*eAAAa_BBBB + (qb^4)*eAAAa_bbbb + 4*pb*(qb^3)*eAAAa_Bbbb + 4*qb*(pb^3)*eAAAa_BBBb + 6*(pb^2)*(qb^2)*eAAAa_BBbb
+ceAAaa = (pb^4)*eAAaa_BBBB + (qb^4)*eAAaa_bbbb + 4*pb*(qb^3)*eAAaa_Bbbb + 4*qb*(pb^3)*eAAaa_BBBb + 6*(pb^2)*(qb^2)*eAAaa_BBbb
+ceAaaa = (pb^4)*eAaaa_BBBB + (qb^4)*eAaaa_bbbb + 4*pb*(qb^3)*eAaaa_Bbbb + 4*qb*(pb^3)*eAaaa_BBBb + 6*(pb^2)*(qb^2)*eAaaa_BBbb
+ceaaaa = (pb^4)*eaaaa_BBBB + (qb^4)*eaaaa_bbbb + 4*pb*(qb^3)*eaaaa_Bbbb + 4*qb*(pb^3)*eaaaa_BBBb + 6*(pb^2)*(qb^2)*eaaaa_BBbb
+
+ceBBBB = (pa^4)*eAAAA_BBBB + (qa^4)*eaaaa_BBBB + 4*pa*(qa^3)*eAaaa_BBBB + 4*qa*(pa^3)*eAAAa_BBBB + 6*(pa^2)*(qa^2)*eAAaa_BBBB
+ceBBBb = (pa^4)*eAAAA_BBBb + (qa^4)*eaaaa_BBBb + 4*pa*(qa^3)*eAaaa_BBBb + 4*qa*(pa^3)*eAAAa_BBBb + 6*(pa^2)*(qa^2)*eAAaa_BBBb
+ceBBbb = (pa^4)*eAAAA_BBbb + (qa^4)*eaaaa_BBbb + 4*pa*(qa^3)*eAaaa_BBbb + 4*qa*(pa^3)*eAAAa_BBbb + 6*(pa^2)*(qa^2)*eAAaa_BBbb
+ceBbbb = (pa^4)*eAAAA_Bbbb + (qa^4)*eaaaa_Bbbb + 4*pa*(qa^3)*eAaaa_Bbbb + 4*qa*(pa^3)*eAAAa_Bbbb + 6*(pa^2)*(qa^2)*eAAaa_Bbbb
+cebbbb = (pa^4)*eAAAA_bbbb + (qa^4)*eaaaa_bbbb + 4*pa*(qa^3)*eAaaa_bbbb + 4*qa*(pa^3)*eAAAa_bbbb + 6*(pa^2)*(qa^2)*eAAaa_bbbb
+
+CAA = AA + ceAA
+CAa = Aa + ceAa
+Caa = aa + ceaa
+
+CBB = BB + ceBB
+CBb = Bb + ceBb
+Cbb = bb + cebb
+
+cAAAA = AAAA + ceAAAA
+cAAAa = AAAa + ceAAAa
+cAAaa = AAaa + ceAAaa
+cAaaa = Aaaa + ceAaaa
+caaaa = aaaa + ceaaaa
+
+cBBBB = BBBB + ceBBBB
+cBBBb = BBBb + ceBBBb
+cBBbb = BBbb + ceBBbb
+cBbbb = Bbbb + ceBbbb
+cbbbb = bbbb + cebbbb
+
+z_diplo_a = CAA*(pa^2) + CAa*(2*pa*qa) + Caa*(qa^2) 
+z_diplo_b = CBB*(pb^2) + CBb*(2*pb*qb) + Cbb*(qb^2)
+
+z_tetra_a = cAAAA*(pa^4) + cAAAa*4*(pa^3)*qa + cAaaa*4*(qa^3)*pa + cAAaa*6*(pa^2)*(qa^2) + caaaa*(qa^4)
+z_tetra_b = cBBBB*(pb^4) + cBBBb*4*(pb^3)*qb + cBbbb*4*(qb^3)*pb + cBBbb*6*(pb^2)*(qb^2) + cbbbb*(qb^4)
+
+mean_epi_diplo = (pa^2)*(pb^2)*eAA_BB + (pa^2)*(qb^2)*eAA_bb + (pa^2)*(2*pb*qb)*eAA_Bb +(qa^2)*(pb^2)*eaa_BB + (qa^2)*(qb^2)*eaa_bb + (qa^2)*(2*pb*qb)*eaa_Bb + (2*pa*qa)*(pb^2)*eAa_BB + (2*pa*qa)*(qb^2)*eAa_bb + (2*pa*qa)*(2*pb*qb)*eAa_Bb
+
+mean_epi_tetra = (pa^4)*(pb^4)*eAAAA_BBBB + (pa^4)*(qb^4)*eAAAA_bbbb + (pa^4)*(4*(pb^3)*qb)*eAAAA_BBBb + (pa^4)*(4*(qb^3)*pb)*eAAAA_Bbbb + (pa^4)*(6*(pb^2)*(qb^2))*eAAAA_BBbb + (qa^4)*(pb^4)*eaaaa_BBBB + (qa^4)*(qb^4)*eaaaa_bbbb + (qa^4)*(4*(pb^3)*qb)*eaaaa_BBBb + (qa^4)*(4*(qb^3)*pb)*eaaaa_Bbbb + (qa^4)*(6*(pb^2)*(qb^2))*eaaaa_BBbb + (4*(pa^3)*qa)*(pb^4)*eAAAa_BBBB + (4*(pa^3)*qa)*(qb^4)*eAAAa_bbbb + (4*(pa^3)*qa)*(4*(pb^3)*qb)*eAAAa_BBBb + (4*(pa^3)*qa)*(4*(qb^3)*pb)*eAAAa_Bbbb + (4*(pa^3)*qa)*(6*(pb^2)*(qb^2))*eAAAa_BBbb + (4*(qa^3)*pa)*(pb^4)*eAaaa_BBBB + (4*(qa^3)*pa)*(qb^4)*eAaaa_bbbb + (4*(qa^3)*pa)*(4*(pb^3)*qb)*eAaaa_BBBb + (4*(qa^3)*pa)*(4*(qb^3)*pb)*eAaaa_Bbbb + (4*(qa^3)*pa)*(6*(pb^2)*(qb^2))*eAaaa_BBbb + (6*(pa^2)*(qa^2))*(pb^4)*eAAaa_BBBB + (6*(pa^2)*(qa^2))*(qb^4)*eAAaa_bbbb + (6*(pa^2)*(qa^2))*(4*(pb^3)*qb)*eAAaa_BBBb + (6*(pa^2)*(qa^2))*(4*(qb^3)*pb)*eAAaa_Bbbb + (6*(pa^2)*(qa^2))*(6*(pb^2)*(qb^2))*eAAaa_BBbb
+
+###############################
+
+alpha_A_dip = pa*CAA + qa*CAa - z_diplo_a
+alpha_a_dip = pa*CAa + qa*Caa - z_diplo_a
+
+alpha_B_dip = pb*CBB + qb*CBb - z_diplo_b
+alpha_b_dip = pb*CBb + qb*Cbb - z_diplo_b
+
+alpha_A_tet = (pa^3)*cAAAA + (qa^3)*cAaaa + (3*(pa^2)*(qa))*cAAAa + (3*(pa)*(qa^2))*cAAaa - z_tetra_a
+alpha_a_tet = (pa^3)*cAAAa + (qa^3)*caaaa + (3*(pa^2)*(qa))*cAAaa + (3*(pa)*(qa^2))*cAaaa - z_tetra_a
+
+alpha_B_tet = (pb^3)*cBBBB + (qb^3)*cBbbb + (3*(pb^2)*(qb))*cBBBb + (3*(pb)*(qb^2))*cBBbb - z_tetra_b
+alpha_b_tet = (pb^3)*cBBBb + (qb^3)*cbbbb + (3*(pb^2)*(qb))*cBBbb + (3*(pb)*(qb^2))*cBbbb - z_tetra_b
+
+Beta_AA = (pa^2)*cAAAA + (qa^2)*cAAaa + 2*pa*qa*cAAAa - 2*alpha_A_tet - z_tetra_a 
+Beta_Aa = (pa^2)*cAAAa + (qa^2)*cAaaa + 2*pa*qa*cAAaa - alpha_A_tet - alpha_a_tet - z_tetra_a
+Beta_aa = (pa^2)*cAAaa + (qa^2)*caaaa + 2*pa*qa*cAaaa - 2*alpha_a_tet - z_tetra_a
+
+Beta_BB = (pb^2)*cBBBB + (qb^2)*cBBbb + 2*pb*qb*cBBBb - 2*alpha_B_tet - z_tetra_b
+Beta_Bb = (pb^2)*cBBBb + (qb^2)*cBbbb + 2*pb*qb*cBBbb - alpha_B_tet - alpha_b_tet - z_tetra_b
+Beta_bb = (pb^2)*cBBbb + (qb^2)*cbbbb + 2*pb*qb*cBbbb - 2*alpha_b_tet - z_tetra_b
+  
+Var_add_dip = 2*pa*(alpha_A_dip^2) + 2*qa*(alpha_a_dip^2) + 2*pb*(alpha_B_dip^2) + 2*qb*(alpha_b_dip^2)
+
+mean_dip = AA*(pa^2) + Aa*(2*pa*qa) + aa*(qa^2) + BB*(pb^2) + Bb*(2*pb*qb) + bb*(qb^2) + mean_epi_diplo
+
+evo_domdiplo_epim[k] = Var_add_dip/(mean_dip^2)
+
+Var_add_tetra = 4*pa*(alpha_A_tet^2) + 4*qa*(alpha_a_tet^2) + 4*pb*(alpha_B_tet^2) + 4*qb*(alpha_b_tet^2)
+
+Var_dom_tetra = 6*(pa^2)*(Beta_AA^2) + 6*(qa^2)*(Beta_aa^2) + 12*pa*qa*(Beta_Aa^2) + 6*(pb^2)*(Beta_BB^2) + 6*(qb^2)*(Beta_bb^2) + 12*pb*qb*(Beta_Bb^2)
+
+mean_tet = AAAA*(pa^4) + aaaa*(qa^4) + AAAa*(4*(pa^3)*(qa)) + Aaaa*(4*(qa^3)*(pa)) + AAaa*(6*(pa^2)*(qa^2)) + BBBB*(pb^4) + bbbb*(qb^4) + BBBb*(4*(pb^3)*(qb)) + Bbbb*(4*(qb^3)*(pb)) + BBbb*(6*(pb^2)*(qb^2)) + mean_epi_tetra
+
+evo_domtetra_epim[k] = (Var_add_tetra + (Var_dom_tetra/3))/(mean_tet^2)
+evo_domtetra_add_epim[k] = (Var_add_tetra )/(mean_tet^2)
+
+  #}
+}
+
+
+coll = c(NULL)
+
+for(i in 1:length(p_a)){
+  if((evo_diplo_epim[i]/evo_diplo[i])/(evo_tetra_epim[i]/evo_tetra[i]) >= 1){coll[i] = "green"}
+  #else if(evo_tetra_epim[i]/evo_tetra[i] < 0.5){coll[i] = 2}
+  else{coll[i] = "red"}
+}
+
+# Positive epi 99.2% mieux tetra, 99.0 diplo
+# neg epi 40.4% tetra, 4.9% en diplo
+
+plot3d( 
+  x=p_a, y=p_b, z=evo_diplo_epim/evo_diplo, 
+  col = coll,zlim = c(0,4) 
+  )
+
+scatter3D(p_a,p_b,evo_tetra_epip/evo_tetra, phi = 21, bty ="g", colvar = evo_tetra_epip/evo_tetra)
+
+scatter3D(p_a,p_b,evo_tetra_epim/evo_tetra, phi = 21, bty ="g", colvar = evo_tetra_epim/evo_tetra)
+
+scatter3D(p_a,p_b,(evo_tetra_epip/evo_diplo_epip)/(evo_tetra/evo_diplo), phi = 21, bty ="g", colvar = evo_tetra_epim/evo_diplo_epim)
+
+scatter3D(p_a,p_b,evo_tetra_epip/evo_diplo_epip, phi = 21, bty ="g", colvar = evo_tetra_epip/evo_diplo_epip)
+
+plot3d(p_a,p_b,evo_tetra_epip/evo_diplo_epip, zlim=c(0,5))
+plot3d(p_a,p_b,evo_tetra_epim/evo_diplo_epim, zlim=c(0,100))
+
+# library
+install.packages("latticeExtra")
+library(latticeExtra) 
+ 
+test = evo_tetra_epim/evo_diplo_epim
+
+for(i in 1:length(evo_domtetra_epim)){
+  
+  if(test[i]>2){test[i]=2}
+  
+}
+
+# create data
+set.seed(1) 
+data <- data.frame(x = p_b, y = p_a) 
+data$z <- with(data, test) 
+
+color.ramp.length <- 20
+negative.length <- 17
+positive.length <- 20
+cols <- c(colorRampPalette(c("tomato", "white"))(negative.length),
+          colorRampPalette(c("white", "lightgreen"))(positive.length))
+
+
+# showing data points on the same color scale 
+levelplot(z ~ x * y, data, 
+          panel = panel.levelplot.points, cex = 1, col.regions = cols,  xlab ="q1", ylab="p1", main="Additive scenario - negative epistasis" 
+) + 
+  layer_(panel.2dsmoother(..., n = 200))
+
+#######################################################################
+
+test = evo_tetra_epip/evo_diplo_epip
+
+for(i in 1:length(evo_domtetra_epim)){
+  
+  if(test[i]>2){test[i]=2}
+  
+}
+
+# create data
+set.seed(1) 
+data <- data.frame(x = p_b, y = p_a) 
+data$z <- with(data, test) 
+
+color.ramp.length <- 20
+negative.length <- 10
+positive.length <- 20
+cols <- c(colorRampPalette(c("tomato", "white"))(negative.length),
+          colorRampPalette(c("white", "lightgreen"))(positive.length))
+
+
+# showing data points on the same color scale 
+levelplot(z ~ x * y, data, 
+          panel = panel.levelplot.points, cex = 1, col.regions = cols,  xlab ="q1", ylab="p1", main="Additive scenario - positive epistasis" 
+) + 
+  layer_(panel.2dsmoother(..., n = 200))
+
+#########################################################################
+
+test = evo_domtetra_epip/evo_domdiplo_epip
+
+for(i in 1:length(evo_domtetra_epim)){
+  
+  if(test[i]>2){test[i]=2}
+  
+}
+
+# create data
+set.seed(1) 
+data <- data.frame(x = p_b, y = p_a) 
+data$z <- with(data, test) 
+
+color.ramp.length <- 20
+negative.length <- 14
+positive.length <- 20
+cols <- c(colorRampPalette(c("tomato", "white"))(negative.length),
+          colorRampPalette(c("white", "lightgreen"))(positive.length))
+
+
+# showing data points on the same color scale 
+levelplot(z ~ x * y, data, 
+          panel = panel.levelplot.points, cex = 1, col.regions = cols,  xlab ="q1", ylab="p1", main="Dominant scenario - positive epistasis" 
+) + 
+  layer_(panel.2dsmoother(..., n = 200))
+
+##################################################################
+
+test = evo_domtetra_epim/evo_domdiplo_epim
+
+for(i in 1:length(evo_domtetra_epim)){
+  
+  if(test[i]>2){test[i]=2}
+  
+}
+
+# create data
+set.seed(1) 
+data <- data.frame(x = p_b, y = p_a) 
+data$z <- with(data, test) 
+
+color.ramp.length <- 20
+negative.length <- 17
+positive.length <- 20
+cols <- c(colorRampPalette(c("tomato", "white"))(negative.length),
+          colorRampPalette(c("white", "lightgreen"))(positive.length))
+
+
+# showing data points on the same color scale 
+levelplot(z ~ x * y, data, 
+          panel = panel.levelplot.points, cex = 1, col.regions = cols,  xlab ="q1", ylab="p1", main="Dominant scenario - negative epistasis" 
+) + 
+  layer_(panel.2dsmoother(..., n = 200))
+
+```
