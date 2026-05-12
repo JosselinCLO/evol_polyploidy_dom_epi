@@ -1,9 +1,4 @@
 species;family;trait;trait category;auto_allo;ploidy;nat_domesticated;additive variance;dominance variance;mean_value;narrow_h;SE_h2;narrow_h_d;SE_h2_d;narrow_h_e;SE_h2_e;broad_h;variance_H2;article
-Fragaria x ananasa;rosaceae;Soluble_solids;physiological;allo;8;domesticated;NA;NA;NA;0.32;NA;0.04;NA;0.08;NA;NA;NA;Zingaretti_et_al_2020_Frontiers_in_plant_sciences
-Fragaria x ananasa;rosaceae;early_yield;Fitness;allo;8;domesticated;NA;NA;NA;0.23;NA;0.06;NA;0.09;NA;NA;NA;Zingaretti_et_al_2020_Frontiers_in_plant_sciences
-Fragaria x ananasa;rosaceae;Total yield;Fitness;allo;8;domesticated;NA;NA;NA;0.28;NA;0.09;NA;0.13;NA;NA;NA;Zingaretti_et_al_2020_Frontiers_in_plant_sciences
-Fragaria x ananasa;rosaceae;fruit weight;Fitness;allo;8;domesticated;NA;NA;NA;0.58;NA;0.05;NA;0.06;NA;NA;NA;Zingaretti_et_al_2020_Frontiers_in_plant_sciences
-Fragaria x ananasa;rosaceae;culled_fruits;Morpho;allo;8;domesticated;NA;NA;NA;0.25;NA;0.06;NA;0.18;NA;NA;NA;Zingaretti_et_al_2020_Frontiers_in_plant_sciences
 Vaccinium corymbosum;ericaceae;Firmness;Morpho;auto;4;domesticated;NA;NA;NA;0.28;NA;0.19;NA;0.12;NA;NA;NA;Zingaretti_et_al_2020_Frontiers_in_plant_sciences
 Vaccinium corymbosum;ericaceae;scar diameter;Morpho;auto;4;domesticated;NA;NA;NA;0.34;NA;0.12;NA;0.18;NA;NA;NA;Zingaretti_et_al_2020_Frontiers_in_plant_sciences
 Vaccinium corymbosum;ericaceae;Size;Morpho;auto;4;domesticated;NA;NA;NA;0.27;NA;0.11;NA;0.16;NA;NA;NA;Zingaretti_et_al_2020_Frontiers_in_plant_sciences
@@ -16,15 +11,6 @@ Vaccinium spp;ericaceae;weight;Fitness;auto;4;domesticated;NA;NA;NA;0.3;NA;0.2;N
 Vaccinium spp;ericaceae;yield;Fitness;auto;4;domesticated;NA;NA;NA;0.2;NA;0.1;NA;NA;NA;NA;NA;Amadeu_et_al_2020_Crop_Science
 Solanum tuberosum;solanaceae;Specific gravity;Morpho;auto;4;domesticated;NA;NA;NA;0.125;NA;0.15;NA;NA;NA;NA;NA;Amadeu_et_al_2020_Crop_Science
 Solanum tuberosum;solanaceae;yield;Fitness;auto;4;domesticated;NA;NA;NA;0.1;NA;0.25;NA;NA;NA;NA;NA;Amadeu_et_al_2020_Crop_Science
-Brassica juncea;brassicaceae;Seed Yield;Fitness;allo;4;domesticated;22.18;288.84;NA;0.06;NA;NA;NA;NA;NA;0.90;NA;Bansal_et_al_2012_plos_one
-Brassica juncea;brassicaceae;Biomass yield;Fitness;allo;4;domesticated;1946.49;6361.18;NA;0.19;NA;NA;NA;NA;NA;0.84;NA;Bansal_et_al_2012_plos_one
-Saccharum officinarum;poaceae;total cane harvested;Fitness;allo;8;domesticated;NA;NA;NA;0.26;NA;0.13;NA;0.19;NA;0.72;NA;Chen_et_al_2022_The_plant_genome
-Saccharum officinarum;poaceae;fiber content;Morpho;allo;8;domesticated;NA;NA;NA;0.61;NA;NA;NA;NA;NA;0.89;NA;Chen_et_al_2022_The_plant_genome
-Saccharum officinarum;poaceae;commercial sugar cane;Fitness;allo;8;domesticated;NA;NA;NA;0.52;NA;NA;NA;NA;NA;0.79;NA;Chen_et_al_2022_The_plant_genome
-Populus trichocarpa x Populus deltoides;salicaceae;SLA;Morpho;allo;3;domesticated;NA;NA;NA;0.11;NA;0.20;NA;0.12;NA;0.43;NA;Wu_2000_Genet.Research.cambrige
-Populus trichocarpa x Populus deltoides;salicaceae;Petiole length;Morpho;allo;3;domesticated;NA;NA;NA;0.08;NA;0.17;NA;0.11;NA;0.36;NA;Wu_2000_Genet.Research.cambrige
-Populus trichocarpa x Populus deltoides;salicaceae;Leaf width;Morpho;allo;3;domesticated;NA;NA;NA;0.22;NA;0.13;NA;0.11;NA;0.46;NA;Wu_2000_Genet.Research.cambrige
-Populus trichocarpa x Populus deltoides;salicaceae;Distance leaf;Morpho;allo;3;domesticated;NA;NA;NA;0.10;NA;0.06;NA;0.02;NA;0.18;NA;Wu_2000_Genet.Research.cambrige
 Solanum tuberosum;solanaceae;Yield;Fitness;auto;4;domesticated;NA;NA;NA;0.34;NA;0.12;NA;NA;NA;NA;NA;Endelman_2023_TAG
 Solanum tuberosum;solanaceae;Fry color;Morpho;auto;4;domesticated;NA;NA;NA;0.38;NA;0.04;NA;NA;NA;NA;NA;Endelman_2023_TAG
 Solanum tuberosum;solanaceae;Vine maturity;Morpho;auto;4;domesticated;NA;NA;NA;0.43;NA;0.02;NA;NA;NA;NA;NA;Endelman_2023_TAG
@@ -51,13 +37,6 @@ Urochloa spp.;poaceae;crude protein;physiological;auto;4;domesticated;0.4;0;15.4
 Urochloa spp.;poaceae;neutral detergent fiber;physiological;auto;4;domesticated;0.5;0;63.34;0.63;NA;0;NA;NA;NA;0.63;NA;Matias_et_al_2018_Crop_Science
 Urochloa spp.;poaceae;in vitro organic matter digestibility;physiological;auto;4;domesticated;0.9;0;72.33;0.53;NA;0.53;NA;NA;NA;0.53;NA;Matias_et_al_2018_Crop_Science
 Urochloa spp.;poaceae;Lignin;physiological;auto;4;domesticated;0;0.01;2.07;0;NA;0.53;NA;NA;NA;0.53;NA;Matias_et_al_2018_Crop_Science
-Saccharum officinarum;poaceae;stalk number;Fitness;allo;8;domesticated;NA;NA;NA;0.04;;0.01;NA;NA;NA;0.05;NA;Pisaroglo_de_Carvalho_et_al_2014_Agronomic_Application_of_Genetic_Ressources
-Saccharum officinarum;poaceae;stalk weight;Morpho;allo;8;domesticated;NA;NA;NA;0.01;;0.07;NA;NA;NA;0.08;NA;Pisaroglo_de_Carvalho_et_al_2014_Agronomic_Application_of_Genetic_Ressources
-Saccharum officinarum;poaceae;stalk diameter;Morpho;allo;8;domesticated;NA;NA;NA;0.1;;0.12;NA;NA;NA;0.22;NA;Pisaroglo_de_Carvalho_et_al_2014_Agronomic_Application_of_Genetic_Ressources
-Saccharum officinarum;poaceae;stalk height;Morpho;allo;8;domesticated;NA;NA;NA;0.13;;0.35;NA;NA;NA;0.48;NA;Pisaroglo_de_Carvalho_et_al_2014_Agronomic_Application_of_Genetic_Ressources
-Saccharum officinarum;poaceae;juice of soluble solids;physiological;allo;8;domesticated;NA;NA;NA;0.11;;0.04;NA;NA;NA;0.15;NA;Pisaroglo_de_Carvalho_et_al_2014_Agronomic_Application_of_Genetic_Ressources
-Saccharum officinarum;poaceae;Cane yield;physiological;allo;8;domesticated;NA;NA;NA;0;;0.08;NA;NA;NA;0.08;NA;Pisaroglo_de_Carvalho_et_al_2014_Agronomic_Application_of_Genetic_Ressources
-Saccharum officinarum;poaceae;Sugar yield;physiological;allo;8;domesticated;NA;NA;NA;0;;0.08;NA;NA;NA;0.08;NA;Pisaroglo_de_Carvalho_et_al_2014_Agronomic_Application_of_Genetic_Ressources
 Solanum tuberosum;solanaceae;Tuber shape;Morpho;auto;4;domesticated;NA;NA;NA;0.78;NA;NA;NA;NA;NA;0.973;NA;Pandey_et_al_2022_Frontiers_Plant_Science
 Solanum tuberosum;solanaceae;Length/width;Morpho;auto;4;domesticated;NA;NA;NA;0.751;NA;NA;NA;NA;NA;0.976;NA;Pandey_et_al_2022_Frontiers_Plant_Science
 Solanum tuberosum;solanaceae;eye depth;Morpho;auto;4;domesticated;NA;NA;NA;0.46;NA;NA;NA;NA;NA;0.68;NA;Pandey_et_al_2022_Frontiers_Plant_Science
@@ -85,7 +64,6 @@ Oryza sativa;poaceae;Awn length;Morpho;auto;4;domesticated;NA;NA;NA;0.20;NA;0.05
 Oryza sativa;poaceae;Grain length;Morpho;auto;4;domesticated;NA;NA;NA;0.39;NA;0;NA;0.54;NA;0.93;NA;Qasim_Shadid_et_al_2012_Pakistan_Journal_Botany
 Oryza sativa;poaceae;Grain widht;Morpho;auto;4;domesticated;NA;NA;NA;0.25;NA;0;NA;0.62;NA;0.87;NA;Qasim_Shadid_et_al_2012_Pakistan_Journal_Botany
 Oryza sativa;poaceae;Seed set;Fitness;auto;4;domesticated;NA;NA;NA;0.23;NA;0.61;NA;0;NA;0.84;NA;Qasim_Shadid_et_al_2012_Pakistan_Journal_Botany
-Triticum aestivum;poaceae;grain yield;Fitness;allo;6;domesticated;4.21;NA;NA;0.11;0.02;NA;NA;0.29;0.02;0.39;0.02;Tessele_et_al_2023_Biorxiv
 Solanum tuberosum;poaceae;late blight;Fitness;auto;4;domesticated;NA;NA;NA;0.166;NA;0.141;NA;NA;NA;0.34;NA;Encisco-Rodriguez_et_al_2018_G3
 Solanum tuberosum;poaceae;Common scab;Fitness;auto;4;domesticated;NA;NA;NA;0.356;NA;0.151;NA;NA;NA;0.448;NA;Encisco-Rodriguez_et_al_2018_G3
 Panicum maximum;poaceae;Organic matter;Fitness;auto;4;domesticated;NA;NA;NA;0.53;NA;NA;NA;NA;NA;0.66;NA;Lara_et_al_2019_G3
@@ -94,17 +72,6 @@ Panicum maximum;poaceae;in vitro organic matter digestibility;physiological;auto
 Panicum maximum;poaceae;Leaf dry matter;Morpho;auto;4;domesticated;NA;NA;NA;0.11;NA;NA;NA;NA;NA;0.89;NA;Lara_et_al_2019_G3
 Panicum maximum;poaceae;regrowth capacity;Fitness;auto;4;domesticated;NA;NA;NA;0.31;NA;NA;NA;NA;NA;0.85;NA;Lara_et_al_2019_G3
 Panicum maximum;poaceae;percentage of leaf blades;Morpho;auto;4;domesticated;NA;NA;NA;0.12;NA;NA;NA;NA;NA;0.43;NA;Lara_et_al_2019_G3
-Saccharum officinarum;poaceae;total cane per hectar;Fitness;allo;8;domesticated;15.82;3.08;NA;0.172;0.02;0.035;0.02;0.263;0.04;0.47;NA;Yadav_et_al_2023_Frontiers_Plant_Sciences
-Saccharum officinarum;poaceae;commercial sugar cane;Fitness;allo;8;domesticated;0.19;0;NA;0.404;0.04;0;NA;0.149;0.04;0.553;NA;Yadav_et_al_2023_Frontiers_Plant_Sciences
-Saccharum officinarum;poaceae;fiber content;physiological;allo;8;domesticated;0.85;0;NA;0.500;0.05;0;NA;0.100;0.04;0.600;NA;Yadav_et_al_2023_Frontiers_Plant_Sciences
-Triticum aestivum;poaceae;grain yield;Fitness;allo;6;domesticated;NA;NA;NA;0.203;NA;NA;NA;0.654;NA;0.857;NA;Raffo_et_al_20228Theoretical_and_applied_genetics
-Festuca arundinacea;poaceae;spring growth;Fitness;allo;6;domesticated;NA;NA;NA;0.68;NA;NA;NA;NA;NA;0.85;NA;Majidi_et_al_2009_Euphytica
-Festuca arundinacea;poaceae;days to pollination;LHT;allo;6;domesticated;NA;NA;NA;0.78;NA;NA;NA;NA;NA;0.90;NA;Majidi_et_al_2009_Euphytica
-Festuca arundinacea;poaceae;plant height;Morpho;allo;6;domesticated;NA;NA;NA;0.69;NA;NA;NA;NA;NA;0.83;NA;Majidi_et_al_2009_Euphytica
-Festuca arundinacea;poaceae;number of fertile shoots;Fitness;allo;6;domesticated;NA;NA;NA;0.45;NA;NA;NA;NA;NA;0.6;NA;Majidi_et_al_2009_Euphytica
-Festuca arundinacea;poaceae;dry matter;Morpho;allo;6;domesticated;NA;NA;NA;0.46;NA;NA;NA;NA;NA;0.52;NA;Majidi_et_al_2009_Euphytica
-Festuca arundinacea;poaceae;% dry matter;Morpho;allo;6;domesticated;NA;NA;NA;0.57;NA;NA;NA;NA;NA;0.7;NA;Majidi_et_al_2009_Euphytica
-Festuca arundinacea;poaceae;curb width;Morpho;allo;6;domesticated;NA;NA;NA;0.51;NA;NA;NA;NA;NA;0.59;NA;Majidi_et_al_2009_Euphytica
 Musa spp;musaceae;Fruit filling time;LHT;auto;3;domesticated;368862;0;NA;1;0;0;0;NA;NA;NA;NA;Tenkuano_et_al_2012_Euphytica
 Musa spp;musaceae;Plant Height;Morpho;auto;3;domesticated;0;54.45;NA;0;0;1;0;NA;NA;NA;NA;Tenkuano_et_al_2012_Euphytica
 Musa spp;musaceae;number of leaves;Morpho;auto;3;domesticated;0;8.9;NA;0;0;1;0;NA;NA;NA;NA;Tenkuano_et_al_2012_Euphytica
@@ -112,4 +79,3 @@ Musa spp;musaceae;Sucker Height;Morpho;auto;3;domesticated;0;1023492;NA;0;0;1;0;
 Musa spp;musaceae;Bunch weight;Morpho;auto;3;domesticated;9909.4;0;NA;1;0;0;0;NA;NA;NA;NA;Tenkuano_et_al_2012_Euphytica
 Musa spp;musaceae;Fruit length;Morpho;auto;3;domesticated;353.7;0;NA;1;0;0;0;NA;NA;NA;NA;Tenkuano_et_al_2012_Euphytica
 Musa spp;musaceae;Fruit circumference;Morpho;auto;3;domesticated;0;0.6;NA;0;0;1;0;NA;NA;NA;NA;Tenkuano_et_al_2012_Euphytica
-Saccharum officinarum;poaceae;Sugar yield;physiological;allo;8;domesticated;NA;NA;NA;0.622;NA;0.204;NA;NA;NA;NA;NA;Oakey_et_al_2007_Theoretical_and_applied_Genetics
